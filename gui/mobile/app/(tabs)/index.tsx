@@ -13,7 +13,6 @@ export default function HomeScreen() {
     const checkLoginStatus = async () => {
       const token = await AsyncStorage.getItem('userToken');
       if (token) {
-        // Jika token ditemukan, langsung lempar ke dashboard
         router.replace('/dashboard');
       }
     };
@@ -60,7 +59,7 @@ export default function HomeScreen() {
       console.error(error);
       Alert.alert('Error Jaringan', 'Gagal terhubung ke server. Pastikan IP laptop benar dan satu WiFi.');
     } finally {
-      setIsLoading(false); // Matikan loading mau sukses atau gagal
+      setIsLoading(false); 
     }
   }
 

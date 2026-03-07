@@ -11,10 +11,10 @@ export class AuthController {
 
   @Post('/register')
   async registerUser(@Body() data: RegisterUserDto) { 
-    return this.authService.registerUser(data); // Lempar ke Service
+    return this.authService.registerUser(data); 
   }
   
-  @HttpCode(HttpStatus.OK) // Biar return 200 OK (bukan 201 Created)
+  @HttpCode(HttpStatus.OK) 
   @Post('login')
   async loginUser(@Body() data: LoginUserDto) : Promise<LoginResponse> {
     return this.authService.login(data);

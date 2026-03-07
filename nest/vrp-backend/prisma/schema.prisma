@@ -30,9 +30,13 @@ model User {
   id             String          @id @default(uuid())
   username       String          @unique @db.VarChar(20)
   password       String
+  fullName       String
+  phoneNumber    String
+  birthDate      DateTime
   role           Role            @default(DRIVER)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  maxCapacity  Int      @default(20)
 
   // Relasi ke tabel lain
   driverLocation DriverLocation?

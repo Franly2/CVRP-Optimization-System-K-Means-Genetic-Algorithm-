@@ -1,7 +1,13 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable prettier/prettier */
-import { IsNotEmpty, IsString, IsEnum } from 'class-validator';
+import { 
+  IsNotEmpty, 
+  IsString, 
+  IsEnum, 
+  IsOptional, 
+  IsDateString, 
+  IsNumber 
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { Role } from '@prisma/client';
 
 export class RegisterUserDto {
@@ -13,7 +19,40 @@ export class RegisterUserDto {
   @IsNotEmpty()
   password: string;
 
-  @IsString()
   @IsEnum(Role)
-  role: string;
+  @IsNotEmpty()
+  role: Role;
+
+
+  @IsString()
+  @IsNotEmpty()
+  fullName: string;
+
+  @IsDateString() 
+  @IsNotEmpty()
+  birthDate: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleType?: string;
+
+  @IsString()
+  @IsOptional()
+  plateNumber?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number) 
+  maxCapacity?: number;
+
+  @IsOptional()
+  isAvailable?: boolean;
 }

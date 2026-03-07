@@ -1,6 +1,7 @@
+import { AdminDashboard } from '@/components/adminDashboard';
+import { DriverDashboard } from '@/components/driverDashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -21,7 +22,6 @@ export default function DashboardScreen() {
           setUserName(name);
           setUserRole(role);
         } else {
-          // Kalau data ga ada, lempar ke login
           router.replace('/');
         }
       } catch (e) {
@@ -39,13 +39,11 @@ export default function DashboardScreen() {
     };
 
     if (Platform.OS === 'web') {
-      // Khusus Browser Web
       const confirmLogout = window.confirm("Apakah kamu yakin ingin keluar?");
       if (confirmLogout) {
         logoutAction();
       }
     } else {
-      // Khusus HP (Android/iOS)
       Alert.alert("Logout", "Apakah kamu yakin ingin keluar?", [
         { text: "Batal", style: "cancel" },
         { text: "Ya, Keluar", onPress: logoutAction }
@@ -53,27 +51,73 @@ export default function DashboardScreen() {
     }
   };
 
-  return (
+//   return (
+//     <ThemedView style={styles.container}>
+//       <Stack.Screen 
+//   options={{
+//     headerShown: true, 
+//     title: 'Dashboard Kurir',
+//     headerRight: () => (
+//       <TouchableOpacity 
+//         onPress={handleLogout} 
+//         style={{ marginRight: 20, padding: 5, paddingTop: 10 }} 
+//       >
+//         {/* pake text dulu */}
+//         <ThemedText style={{ color: '#FF3B30', fontWeight: 'bold' }}>Keluar</ThemedText>
+//       </TouchableOpacity>
+//     ),
+//   }} 
+// />
+
+//       <View style={styles.header}>
+//         <ThemedText type="title">Ringkasan</ThemedText>
+//       </View>
+
+//       <View style={styles.card}>
+//         <View style={styles.profileCircle}>
+//           <ThemedText style={styles.initials}>
+//             {userName ? userName.substring(0, 2).toUpperCase() : '??'}
+//           </ThemedText>
+//         </View>
+//         <View>
+//           <ThemedText type="subtitle">Hi, {userName}!</ThemedText>
+//           <ThemedText style={styles.roleText}>{userRole}</ThemedText>
+//         </View>
+//       </View>
+
+//       {/* 3. Menu Utama */}
+//       <ThemedText type="defaultSemiBold" style={styles.menuTitle}>Menu Utama</ThemedText>
+      
+//       <View style={styles.menuGrid}>
+//         <TouchableOpacity style={styles.menuItem}>
+//           <IconSymbol name="map.fill" size={32} color="#4991CC" />
+//           <ThemedText>Rute Kirim</ThemedText>
+//         </TouchableOpacity>
+
+//         <TouchableOpacity style={styles.menuItem}>
+//           <IconSymbol name="archivebox.fill" size={32} color="#4991CC" />
+//           <ThemedText>Data Paket</ThemedText>
+//         </TouchableOpacity>
+//       </View>
+
+//       {/* Bagian bawah sekarang kosong dan bersih, siap untuk konten VRP */}
+//     </ThemedView>
+//   );
+
+
+return (
     <ThemedView style={styles.container}>
       <Stack.Screen 
-  options={{
-    headerShown: true, 
-    title: 'Dashboard Kurir',
-    headerRight: () => (
-      <TouchableOpacity 
-        onPress={handleLogout} 
-        style={{ marginRight: 20, padding: 5, paddingTop: 10 }} 
-      >
-        {/* pake text dulu */}
-        <ThemedText style={{ color: '#FF3B30', fontWeight: 'bold' }}>Keluar</ThemedText>
-      </TouchableOpacity>
-    ),
-  }} 
-/>
-
-      <View style={styles.header}>
-        <ThemedText type="title">Ringkasan</ThemedText>
-      </View>
+        options={{
+          headerShown: true, 
+          title: userRole === 'ADMIN' ? 'Dashboard Admin' : 'Dashboard Kurir', // Judul Dinamis
+          headerRight: () => (
+            <TouchableOpacity onPress={handleLogout} style={{ marginRight: 20, paddingTop: 10 }}>
+              <ThemedText style={{ color: '#FF3B30', fontWeight: 'bold' }}>Keluar</ThemedText>
+            </TouchableOpacity>
+          ),
+        }} 
+      />
 
       <View style={styles.card}>
         <View style={styles.profileCircle}>
@@ -87,25 +131,13 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* 3. Menu Utama */}
-      <ThemedText type="defaultSemiBold" style={styles.menuTitle}>Menu Utama</ThemedText>
-      
-      <View style={styles.menuGrid}>
-        <TouchableOpacity style={styles.menuItem}>
-          <IconSymbol name="map.fill" size={32} color="#4991CC" />
-          <ThemedText>Rute Kirim</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <IconSymbol name="archivebox.fill" size={32} color="#4991CC" />
-          <ThemedText>Data Paket</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      {/* Bagian bawah sekarang kosong dan bersih, siap untuk konten VRP */}
+      {userRole === 'ADMIN' ? (
+        <AdminDashboard />
+      ) : (
+        <DriverDashboard userName={userName} />
+      )}
     </ThemedView>
   );
-
 }
 
 const styles = StyleSheet.create({
