@@ -7,6 +7,9 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 
 export default function HomeScreen() {
+  const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
+  const API_URL = `http://${api_address}:3000/auth/login`;
+
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +35,7 @@ export default function HomeScreen() {
     setIsLoading(true); 
 
     try {
-      const response = await fetch('http://192.168.100.52:3000/auth/login', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

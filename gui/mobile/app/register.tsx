@@ -11,17 +11,17 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [birthDate, setBirthDate] = useState(''); // Format YYYY-MM-DD
+  const [birthDate, setBirthDate] = useState(''); //  YYYY-MM-DD
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Data Kendaraan (Khusus Kurir)
   const [vehicleType, setVehicleType] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
   const [maxCapacity, setMaxCapacity] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   
-  const API_URL = 'http://192.168.100.52:3000/auth/register';
+  const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
+  const API_URL = `http://${api_address}:3000/auth/register`;
 
   async function handleRegister() {
     if (!username || !password || !fullName || !birthDate || !phoneNumber) {
@@ -40,19 +40,17 @@ export default function RegisterScreen() {
           password: password,
           role: isAdmin ? 'ADMIN' : 'DRIVER',
           
-          // Data Pribadi
           fullName: fullName,
           phoneNumber: phoneNumber,
-          birthDate: birthDate, // Pastikan user isi format YYYY-MM-DD
+          birthDate: birthDate, //YYYY-MM-DD
           
-          // Data Kendaraan (Opsional tapi penting buat VRP)
           vehicleType: vehicleType,
           plateNumber: plateNumber,
-          maxCapacity: maxCapacity ? Number(maxCapacity) : 20, // Convert string ke number
+          maxCapacity: maxCapacity ? Number(maxCapacity) : 20, // konvert string ke number
         }),
       });
 
-      const data = await response.json(); // Sekarang tidak akan error lagi
+      const data = await response.json();
 
       if (response.ok && data.status === 'success') {
         if (Platform.OS === 'web') {
@@ -62,7 +60,6 @@ export default function RegisterScreen() {
           Alert.alert("Sukses", data.message, [{ text: "OK", onPress: () => router.push('/') }]);
         }
       } else {
-        // Menampilkan pesan error dari backend
         const msg = data.message || "Terjadi kesalahan";
         Platform.OS === 'web' ? window.alert(msg) : Alert.alert("Error", msg);
       }
