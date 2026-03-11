@@ -1,155 +1,112 @@
-## Project Structure
+# 🚚 CVRP Optimization System (K-Means + Genetic Algorithm)
+
+Sistem optimasi rute pengiriman barang berbasis **Capacitated Vehicle Routing Problem (CVRP)**. Aplikasi ini dirancang untuk membagi wilayah pengiriman secara otomatis kepada kurir dan menentukan urutan jalan paling efisien.
+
+## 🏗️ Project Structure
 
 ```
 CVRP/
 ├── gui/
-│   └── mobile/              # React Native mobile app (Expo)
-│       ├── app/             # App screens and navigation
-│       ├── components/      # Reusable UI components
-│       ├── constants/       # App constants (theme, etc.)
-│       ├── hooks/           # Custom React hooks
-│       └── assets/          # Images and static assets
+│   ├── mobile/              # React Native App (Expo) - Untuk Kurir
+│   │   ├── app/             # App screens and navigation
+│   │   ├── components/      # Reusable UI components
+│   │   └── ...
+│   └── web/                 # React Web Dashboard - Untuk Admin (Clustering View)
 ├── nest/
 │   └── vrp-backend/         # NestJS backend server
-│       ├── src/             # Source code
-│       │   ├── auth/        # Authentication module (JWT, login, register)
-│       │   ├── app.module.ts
-│       │   ├── main.ts
-│       │   └── ...
-│       ├── prisma/          # Database schema and migrations
-│       │   ├── schema.prisma
-│       │   └── migrations/
-│       ├── test/            # E2E tests
-│       └── package.json
-├── Docs/                    # Project documentation
+│       ├── src/             # Logic Algoritma (K-Means, GA, OSRM)
+│       ├── prisma/          # Database schema (PostgreSQL/MySQL)
+│       └── ...
+├── Docs/                    # Dokumentasi Skripsi
 └── README.md
+
 ```
 
-🚀 Fitur Utama
-Proyek ini menyelesaikan masalah Capacitated Vehicle Routing Problem (CVRP) menggunakan pendekatan hibrida dua tahap: K-Means Clustering untuk pengelompokan dan Algoritma Genetika (GA) untuk optimasi jalur.
-1. Tahap Pengelompokan (K-Means Clustering)
+## 🚀 Fitur Utama & Algoritma
 
-Algoritma ini digunakan sebagai langkah pertama (Cluster-First) untuk membagi beban kerja ke beberapa kurir.
+### 1. Adaptive K-Means Clustering (Modified)
 
-    Fungsi: Mengelompokkan titik-titik pengiriman (pelanggan) berdasarkan kedekatan geografis (Latitude/Longitude).
+Tahap pengelompokan paket yang cerdas dengan mempertimbangkan dua aspek utama:
 
-    Proses:
+* **Capacity Constraint:** Menentukan jumlah cluster ($K$) awal berdasarkan rumus $\lceil Total Paket / Kapasitas Kurir \rceil$.
+* **Spatial Radius Constraint:** Menggunakan **Haversine Formula** untuk menghitung radius cluster dalam satuan kilometer. Jika radius melebihi batas (misal > 7km), sistem akan melakukan *auto-increment* pada nilai $K$ untuk memecah wilayah yang terlalu luas agar beban kerja kurir tetap manusiawi.
+* **Haversine Distance:** Digunakan untuk akurasi jarak di permukaan bumi yang bulat, mengompensasi penyempitan garis bujur (Longitude) saat menjauhi khatulistiwa.
 
-        Menentukan jumlah cluster (k) berdasarkan jumlah kendaraan yang tersedia.
+### 2. Genetic Algorithm (Route Optimization)
 
-        Algoritma menghitung centroid (titik tengah) dan mengalokasikan setiap pelanggan ke kurir terdekat.
+Setelah paket terbagi per wilayah, GA bertugas mencari urutan kunjungan (Permutation) paling pendek:
 
-    Constraint (Kendala): Algoritma dimodifikasi untuk mematuhi Kapasitas Kendaraan (maxCapacity). Jika total berat paket dalam satu cluster melebihi kapasitas motor/mobil kurir, sistem akan menyeimbangkan ulang atau memindahkan paket ke cluster lain.
+* **Kromosom:** Representasi satu rute lengkap (Urutan ID Paket).
+* **Populasi:** Kumpulan alternatif rute (Standard: 30-50 kromosom) untuk menjaga keragaman solusi.
+* **Ordered Crossover (OX):** Teknik perkawinan silang khusus untuk memastikan tidak ada paket yang dikunjungi dua kali atau terlewat.
+* **Fitness Function:** Mengukur kualitas rute berdasarkan jarak rute asli (Jalan Raya) yang ditarik dari API **OSRM**.
 
-2. Tahap Optimasi Rute (Genetic Algorithm)
+### 3. Multi-Platform Map Integration
 
-Setelah pelanggan dikelompokkan ke masing-masing kurir, Algoritma Genetika digunakan sebagai langkah kedua (Route-Second) untuk mencari urutan kunjungan terbaik (Traveling Salesman Problem).
+Sistem menggunakan dua library peta berbeda untuk optimalisasi performa:
 
-    Fungsi: Menentukan urutan pengiriman (Sequence) dari Depot -> Pelanggan A -> Pelanggan B -> ... -> Depot agar total jarak tempuh seminimal mungkin.
+* **Mobile (Kurir):** Menggunakan **React Native Maps**. Memanfaatkan SDK Google Maps secara Native untuk akurasi GPS real-time dan pergerakan peta yang *smooth*.
+* **Web (Admin):** Menggunakan **Leaflet.js**. Solusi ringan dan gratis untuk memvisualisasikan ratusan marker cluster di layar PC tanpa beban lisensi API Key yang besar.
 
-    Komponen GA:
+---
 
-        Populasi: Kumpulan kemungkinan rute acak.
+## 📊 Alur Kerja Sistem (Setiap variabel dapat dirubah)
 
-        Fitness Function: Menilai kualitas rute berdasarkan total jarak (semakin pendek semakin baik).
-
-        Selection & Crossover: Menggabungkan bagian rute terbaik dari "induk" untuk menghasilkan rute baru yang lebih efisien.
-
-        Mutation: Menukar urutan kunjungan secara acak untuk mencegah algoritma terjebak pada solusi lokal (local optima).
-
-📊 Alur Kerja Sistem
-Cuplikan kode
-
+```mermaid
 graph TD;
     A[Data Paket & Lokasi] --> B[K-Means Clustering];
-    B -->|Bagi Area| C{Cek Kapasitas Kendaraan};
-    C -- Over Capacity --> B;
-    C -- Valid --> D[Cluster 1: Driver A];
-    C -- Valid --> E[Cluster 2: Driver B];
-    D --> F[Genetic Algorithm];
-    E --> G[Genetic Algorithm];
-    F --> H[Rute Optimal Driver A];
-    G --> I[Rute Optimal Driver B];
-    
-👤 Autentikasi & Role-based Access
+    B -->|Hitung Radius| C{Radius > 7KM?};
+    C -- Ya & Armada Tersedia --> B1[Increment K];
+    B1 --> B;
+    C -- Tidak --> D[Cluster Terbentuk];
+    D --> E[Genetic Algorithm per Cluster];
+    E --> F[Fitness Eval via OSRM];
+    F --> G[Rute Optimal Terbentuk];
 
-    Multi-Role: Mendukung pendaftaran dan login sebagai ADMIN atau DRIVER (Kurir).
+```
 
-    Secure Auth: Enkripsi password menggunakan bcrypt.
+---
 
-    Persistent Login: Menggunakan AsyncStorage untuk menjaga sesi user tetap aktif.
+## ⚙️ Cara Menjalankan (Local Setup)
 
-🚚 Fitur Kurir (Driver)
+### 1. Persiapan Backend (NestJS)
 
-    Profil Kendaraan: Input otomatis plat nomor dan kapasitas muatan (Max Capacity) saat registrasi.
+1. Masuk ke folder: `cd nest/vrp-backend`
+2. Install dependensi: `npm install`
+3. Konfigurasi file `.env`:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
 
-    Rute Kirim: Tampilan rute pengiriman yang optimal.
+```
 
-    Ringkasan Paket: Monitoring data paket yang harus diantar.
 
-🛠️ Fitur Admin
+4. Generate Prisma Client: `npx prisma generate`
+5. Jalankan migrasi database: `npx prisma migrate dev`
+6. Jalankan server: `npm run start:dev`
 
-    Dashboard Ringkasan: Melihat statistik kurir dan paket secara real-time.
+### 2. Persiapan Frontend (Mobile - Expo)
 
-    Kelola Kurir: Fitur untuk memantau aktivitas dan performa driver.
+1. Masuk ke folder: `cd gui/mobile`
+2. Install dependensi: `npm install`
+3. Sesuaikan `API_URL` di konfigurasi dengan IP Local Laptop Anda.
+4. Jalankan Expo: `npx expo start`
+5. Buka di HP melalui aplikasi **Expo Go**.
 
-    Manajemen Sistem: Otoritas penuh untuk konfigurasi parameter VRP.
+### 3. Persiapan Dashboard Admin (Web)
 
-🛠️ Tech Stack
+1. Masuk ke folder: `cd gui/web` (atau folder dashboard Anda)
+2. Install dependensi: `npm install`
+3. Jalankan versi web: `npm run web` atau `npm run dev`
 
-Frontend:
+---
 
-    React Native (Expo SDK)
+## 🛠️ Tech Stack
 
-    Expo Router (File-based Routing)
+* **Backend:** NestJS, Prisma ORM, OSRM API (Routing).
+* **Mobile:** React Native (Expo), React Native Maps.
+* **Web Admin:** React, Leaflet.js.
+* **Database:** PostgreSQL.
+* **Tools:** Haversine Formula, Genetic Algorithm (Permutation-based), K-Means Clustering.
 
-    TypeScript
-
-    React Native Paper / Themed Components
-
-Backend:
-
-    NestJS (Node.js Framework)
-
-    Prisma ORM (Database Management)
-
-    PostgreSQL / MySQL
-
-    Bcrypt (Security)
-
-⚙️ Cara Menjalankan (Local Setup)
-
-Jika Anda ingin menjalankan proyek ini setelah melakukan git clone, ikuti langkah-langkah berikut:
-1. Persiapan Backend
-
-    Masuk ke folder backend: cd backend
-
-    Install dependensi: npm install
-
-    Konfigurasi file .env (isi dengan koneksi database Anda):
-    Cuplikan kode
-
-    DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
-
-    Jalankan migrasi database: npx prisma migrate dev
-
-    Jalankan server: npm run start:dev
-
-2. Persiapan Frontend (Mobile)
-
-    Masuk ke folder frontend: cd frontend
-
-    Install dependensi: npm install
-
-    PENTING: Ubah API_URL di file konfigurasi atau komponen sesuai dengan IP Address lokal komputer Anda:
-    JavaScript
-
-    const API_URL = 'http://IP_ADDRESS_ANDA:3000/auth/register';
-
-    Jalankan Expo: npx expo start
-
-3. Cara Menjalankan di Perangkat
-
-    Mobile (Expo Go): Scan QR Code menggunakan aplikasi Expo Go di Android atau Kamera di iOS (Pastikan HP dan Laptop di Wi-Fi yang sama).
-
-    Web: npm run web di terminal untuk membuka versi browser.
+---
+Franly Budi Pramana
