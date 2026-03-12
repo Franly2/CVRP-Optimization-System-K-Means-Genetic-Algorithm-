@@ -17,7 +17,7 @@ CVRP/
 │       ├── src/             # Logic Algoritma (K-Means, GA, OSRM)
 │       ├── prisma/          # Database schema (PostgreSQL/MySQL)
 │       └── ...
-├── Docs/                    # Dokumentasi Skripsi
+├── Docs/                    # Dokumentasi
 └── README.md
 
 ```
