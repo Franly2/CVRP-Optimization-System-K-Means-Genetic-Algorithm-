@@ -79,10 +79,10 @@ DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
 
 ```
 
-
-4. Generate Prisma Client: `npx prisma generate`
-5. Jalankan migrasi database: `npx prisma migrate dev`
-6. Jalankan server: `npm run start:dev`
+4. Jalankan migrasi database: `npx prisma migrate dev --name messagehere` 
+5. Generate Prisma Client: `npx prisma generate` 
+6. run seeder`npx prisma db seed` 
+7. Jalankan server: `npm run start`
 
 ### 2. Persiapan Frontend (Mobile - Expo)
 

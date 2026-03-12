@@ -15,7 +15,7 @@ enum Role {
 
 enum PackageStatus {
   PENDING     // Belum diapa-apain (Masih di gudang)
-  ASSIGNED    // Sudah masuk ke rute (Hasil Sweep Algo)
+  ASSIGNED    // Sudah masuk ke rute (hasil clustering)
   DELIVERED   // Sudah sampai
   FAILED      // Gagal kirim
 }
@@ -53,8 +53,6 @@ model DriverLocation {
   lastUpdated DateTime @default(now())
 }
 
-// 🔥 VEHICLE (PENTING BUAT CONSTRAINT)
-// Algoritma Sweep butuh tau kapasitas motor biar tas gak jebol
 model Vehicle {
   id          String   @id @default(uuid())
   userId      String   @unique
@@ -67,33 +65,27 @@ model Vehicle {
   maxVolume   Float    // Kapasitas Volume (liter) -> Constraint algoritma
 }
 
-// 🔥 PACKAGE (INPUT DATA UNTUK SWEEP ALGO)
 model Package {
   id            String        @id @default(uuid())
   recipientName String
   address       String        @db.Text
   
-  // Koordinat (Wajib ada buat Sweep Algorithm hitung sudut)
-  lat           Float
-  lng           Float
+  lat           Float?
+  lng           Float?
   
-  weight        Float         // Berat paket (kg) buat cek kapasitas vehicle
+  weight        Float         // Berat paket (kg)
+  volume        Float         // Volume paket (liter)
   status        PackageStatus @default(PENDING)
 
-  // Relasi ke Rute (Hasil Algoritma)
   routeId       String?
   route         Route?        @relation(fields: [routeId], references: [id])
   
-  // 🔥 ORDER INDEX (Wajib ada buat nyimpen urutan A -> B -> C)
-  // Ini hasil dari Nearest Neighbor / 2-Opt
-  orderIndex    Int?          
+  orderIndex    Int?          // Urutan pengiriman hasil GA (0, 1, 2...)
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
 
-// 🔥 ROUTE (OUTPUT DATA DARI ALGORITMA)
-// Ini kayak "Surat Jalan" buat kurir
 model Route {
   id            String      @id @default(uuid())
   
@@ -101,11 +93,13 @@ model Route {
   driver        User        @relation(fields: [driverId], references: [id])
   
   status        RouteStatus @default(ACTIVE)
-  
-  // List paket yang harus diantar di rute ini
   packages      Package[]
   
-  // Info tambahan buat laporan
-  totalDistance Float?      // Estimasi jarak total (km)
+  totalDistance Float?      // Estimasi jarak total dari OSRM (km)
+  totalWeight   Float?      // NEW: Total berat paket dalam rute ini
+  totalVolume   Float?      // NEW: Total volume paket dalam rute ini
+  polyline      String?     @db.Text // NEW: Garis jalan raya dari OSRM buat digambar di Map
+  colorCode     String?     // NEW: Warna cluster (Hex code, misal "#FF0000")
+  
   date          DateTime    @default(now())
 }
