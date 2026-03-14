@@ -1,67 +1,94 @@
-# 🚚 CVRP Optimization System (K-Means + Genetic Algorithm)
+# 🚚 Agnostic SaaS Logistics Platform: E-Commerce & Fleet Management (Hybrid K-Means + Genetic Algorithm)
 
-Sistem optimasi rute pengiriman barang berbasis **Capacitated Vehicle Routing Problem (CVRP)**. Aplikasi ini dirancang untuk membagi wilayah pengiriman secara otomatis kepada kurir dan menentukan urutan jalan paling efisien.
+Sistem informasi terintegrasi berbasis **Software as a Service (SaaS)** yang menggabungkan modul E-commerce (pemesanan) dengan mesin optimasi logistik cerdas. Aplikasi ini memecahkan masalah **Capacitated Vehicle Routing Problem (CVRP)** dengan membagi wilayah pengiriman secara otomatis kepada kurir dan menentukan urutan jalan paling efisien.
+
 
 ## 🏗️ Project Structure
 
-```
+```text
 CVRP/
 ├── gui/
-│   ├── mobile/              # React Native App (Expo) - Untuk Kurir
+│   ├── mobile/              # React Native App (Expo) - Aplikasi Kurir & Customer (Checkout)
 │   │   ├── app/             # App screens and navigation
 │   │   ├── components/      # Reusable UI components
 │   │   └── ...
-│   └── web/                 # React Web Dashboard - Untuk Admin (Clustering View)
+│   └── web/                 # React Web Dashboard - Untuk Admin Tenant (Manajemen Produk, Order, & Clustering View)
 ├── nest/
-│   └── vrp-backend/         # NestJS backend server
-│       ├── src/             # Logic Algoritma (K-Means, GA, OSRM)
-│       ├── prisma/          # Database schema (PostgreSQL/MySQL)
+│   └── vrp-backend/         # NestJS backend server (Core Engine)
+│       ├── src/             # Logic Algoritma (K-Means, GA, OSRM) & Business API
+            ├── auth/          # Login, Register, JWT, Role Guard
+            ├── products/      # Manajemen Menu Katering (Admin tenant) 
+            ├── orders/        # Proses Checkout Customer & Riwayat Transaksi 
+            └── vrp/           # Core Engine logistik (Clustering & GA)
+│       ├── prisma/          # Database schema (PostgreSQL) - Multi-tenant structure
 │       └── ...
-├── Docs/                    # Dokumentasi
+├── Docs/                    # Dokumentasi Skripsi & API
 └── README.md
 
 ```
 
-## 🚀 Fitur Utama & Algoritma
+## 🚀 Fitur Utama & Konsep Arsitektur
 
-### 1. Adaptive K-Means Clustering (Modified)
+### 1. Arsitektur Multi-Tenant SaaS
+
+Sistem dirancang agar dapat digunakan oleh banyak perusahaan (*Company/Tenant*) secara bersamaan dalam satu platform.
+
+* **Isolasi Data (Data Privacy):** Setiap transaksi, data kurir, armada, dan paket dienkapsulasi menggunakan identifikasi `companyId`.
+* **Depot Management:** Setiap perusahaan dapat mengelola *Depot* (titik awal keberangkatan/dapur utama) mereka sendiri secara dinamis.
+
+### 2. Agnostic Logistics Engine (Separation of Concerns)
+
+Pemisahan tegas antara ranah transaksi dan operasional:
+
+* **Domain Bisnis (Order):** Mengurus katalog produk, keranjang belanja, harga, dan riwayat transaksi (*E-commerce flow*).
+* **Domain Logistik (Package):** Mengurus koordinat tujuan, berat (kg), volume (liter), dan status pengiriman. Data `Order` otomatis dikonversi menjadi `Package` yang siap dioptimasi, membuat *engine* K-Means & GA tetap bersih dan fokus pada perhitungan spasial.
+
+### 3. Adaptive K-Means Clustering (Modified)
 
 Tahap pengelompokan paket yang cerdas dengan mempertimbangkan dua aspek utama:
 
 * **Capacity Constraint:** Menentukan jumlah cluster ($K$) awal berdasarkan rumus $\lceil Total Paket / Kapasitas Kurir \rceil$.
-* **Spatial Radius Constraint:** Menggunakan **Haversine Formula** untuk menghitung radius cluster dalam satuan kilometer. Jika radius melebihi batas (misal > 7km), sistem akan melakukan *auto-increment* pada nilai $K$ untuk memecah wilayah yang terlalu luas agar beban kerja kurir tetap manusiawi.
-* **Haversine Distance:** Digunakan untuk akurasi jarak di permukaan bumi yang bulat, mengompensasi penyempitan garis bujur (Longitude) saat menjauhi khatulistiwa.
+* **Spatial Radius Constraint:** Menggunakan **Haversine Formula** untuk menghitung radius cluster. Jika radius melebihi batas (misal > 7km), sistem akan melakukan *auto-increment* pada nilai $K$ untuk memecah wilayah agar beban kerja kurir tetap efisien.
 
-### 2. Genetic Algorithm (Route Optimization)
+### 4. Genetic Algorithm (Route Optimization)
 
-Setelah paket terbagi per wilayah, GA bertugas mencari urutan kunjungan (Permutation) paling pendek:
+Setelah paket terbagi per wilayah, GA bertugas mencari urutan kunjungan (*Permutation*) paling pendek:
 
 * **Kromosom:** Representasi satu rute lengkap (Urutan ID Paket).
-* **Populasi:** Kumpulan alternatif rute (Standard: 30-50 kromosom) untuk menjaga keragaman solusi.
 * **Ordered Crossover (OX):** Teknik perkawinan silang khusus untuk memastikan tidak ada paket yang dikunjungi dua kali atau terlewat.
-* **Fitness Function:** Mengukur kualitas rute berdasarkan jarak rute asli (Jalan Raya) yang ditarik dari API **OSRM**.
+* **Fitness Function:** Mengukur kualitas rute berdasarkan jarak rute asli yang ditarik dari API **OSRM** (Bukan sekadar garis lurus/Euclidean).
 
-### 3. Multi-Platform Map Integration
+### 5. Multi-Platform Map Integration
 
-Sistem menggunakan dua library peta berbeda untuk optimalisasi performa:
-
-* **Mobile (Kurir):** Menggunakan **React Native Maps**. Memanfaatkan SDK Google Maps secara Native untuk akurasi GPS real-time dan pergerakan peta yang *smooth*.
-* **Web (Admin):** Menggunakan **Leaflet.js**. Solusi ringan dan gratis untuk memvisualisasikan ratusan marker cluster di layar PC tanpa beban lisensi API Key yang besar.
+* **Mobile (Kurir):** Memanfaatkan SDK Google Maps (via React Native Maps) untuk akurasi GPS real-time dan navigasi operasional jalan.
+* **Web (Admin):** Menggunakan **Leaflet.js** sebagai solusi visualisasi ringan untuk menampilkan ratusan marker cluster beserta *polyline* rute di layar PC.
 
 ---
 
-## 📊 Alur Kerja Sistem (Setiap variabel dapat dirubah)
+## 🗄️ Domain-Driven Database Schema
+
+Database dibagi menjadi 3 pilar utama untuk menjaga *Clean Architecture*:
+
+1. **Tenancy Domain:** `Company`, `Depot` (Infrastruktur SaaS).
+2. **Transaction Domain:** `User`, `Product`, `Order`, `OrderItem` (Logic Jual-Beli).
+3. **Logistics Domain:** `Vehicle`, `DriverLocation`, `Package`, `Route` (Logic CVRP & Armada).
+
+---
+
+## 📊 Alur Kerja Sistem (End-to-End)
 
 ```mermaid
 graph TD;
-    A[Data Paket & Lokasi] --> B[K-Means Clustering];
-    B -->|Hitung Radius| C{Radius > 7KM?};
-    C -- Ya & Armada Tersedia --> B1[Increment K];
+    Z[Customer Checkout Pesanan] --> A[Konversi Order menjadi Package];
+    A --> B[K-Means Clustering per Company];
+    B -->|Cek Kapasitas Max Kendaraan| C{Radius/Beban Aman?};
+    C -- Tidak --> B1[Increment K & Re-cluster];
     B1 --> B;
-    C -- Tidak --> D[Cluster Terbentuk];
+    C -- Ya --> D[Cluster Terbentuk & Assign Driver];
     D --> E[Genetic Algorithm per Cluster];
-    E --> F[Fitness Eval via OSRM];
-    F --> G[Rute Optimal Terbentuk];
+    E --> F[Tarik Garis Jalan via OSRM];
+    F --> G[Rute & Polyline Tersimpan di DB];
+    G --> H[Tampil di App Kurir & Dashboard Admin];
 
 ```
 
@@ -69,44 +96,68 @@ graph TD;
 
 ## ⚙️ Cara Menjalankan (Local Setup)
 
-### 1. Persiapan Backend (NestJS)
+### 1. Persiapan Backend (NestJS & Prisma)
 
 1. Masuk ke folder: `cd nest/vrp-backend`
 2. Install dependensi: `npm install`
 3. Konfigurasi file `.env`:
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
+DATABASE_URL="postgresql://user:password@localhost:5432/vrp"
 
 ```
 
-4. Jalankan migrasi database: `npx prisma migrate dev --name messagehere` 
-5. Generate Prisma Client: `npx prisma generate` 
-6. run seeder`npx prisma db seed` 
-7. Jalankan server: `npm run start`
+
+4. Reset & Sinkronisasi Database ke Schema SaaS terbaru:
+```bash
+npx prisma db push --force-reset
+
+```
+
+
+5. Buat baseline migrasi:
+```bash
+npx prisma migrate dev --name init_saas_platform
+
+```
+
+
+*(Pilih 'y' jika diminta persetujuan reset).*
+6. Generate Client & Jalankan Seeder (Otomatis mengisi data Katering, Kurir, dan 50 Paket dummy):
+```bash
+npx prisma generate
+npx prisma db seed
+
+```
+
+
+7. Jalankan server: `npm run start:dev`
 
 ### 2. Persiapan Frontend (Mobile - Expo)
 
 1. Masuk ke folder: `cd gui/mobile`
 2. Install dependensi: `npm install`
-3. Sesuaikan `API_URL` di konfigurasi dengan IP Local Laptop Anda.
+3. Sesuaikan `API_URL` di konfigurasi dengan IP Local Laptop (IPv4) Anda.
 4. Jalankan Expo: `npx expo start`
 5. Buka di HP melalui aplikasi **Expo Go**.
 
 ### 3. Persiapan Dashboard Admin (Web)
 
-1. Masuk ke folder: `cd gui/web` (atau folder dashboard Anda)
+1. Masuk ke folder: `cd gui/web`
 2. Install dependensi: `npm install`
-3. Jalankan versi web: `npm run web` atau `npm run dev`
+3. Jalankan versi web: `npm run dev`
 
 ---
 
 ## 🛠️ Tech Stack
 
-* **Backend:** NestJS, Prisma ORM, OSRM API (Routing).
-* **Mobile:** React Native (Expo), React Native Maps.
-* **Web Admin:** React, Leaflet.js.
-* **Database:** PostgreSQL.
-* **Tools:** Haversine Formula, Genetic Algorithm (Permutation-based), K-Means Clustering.
+* **Backend:** NestJS, Prisma ORM, TypeScript.
+* **Routing & Geo-API:** OSRM (Open Source Routing Machine), Haversine Formula.
+* **Mobile & Web:** React Native (Expo), React.js, Leaflet.js, React Native Maps.
+* **Database:** PostgreSQL (Relational & JSONB metadata).
+* **Algorithms:** K-Means Clustering, Genetic Algorithm (Permutation-based).
 
 ---
-Franly Budi Pramana
+
+**Developed by:** Franly Budi Pramana
+
+

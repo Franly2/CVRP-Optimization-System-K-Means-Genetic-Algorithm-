@@ -7,42 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- ENUMS ---
-enum Role {
-  DRIVER
-  ADMIN
-}
 
 enum PackageStatus {
-  PENDING     // Belum diapa-apain (Masih di gudang)
-  ASSIGNED    // Sudah masuk ke rute (hasil clustering)
-  DELIVERED   // Sudah sampai
-  FAILED      // Gagal kirim
+  PENDING // Belum diapa-apain (Masih di gudang)
+  ASSIGNED // Sudah masuk ke rute (hasil clustering)
+  DELIVERED // Sudah sampai
+  FAILED // Gagal kirim
 }
 
 enum RouteStatus {
-  ACTIVE      // Sedang jalan
-  COMPLETED   // Selesai
+  ACTIVE // Sedang jalan
+  COMPLETED // Selesai
 }
 
-
-model User {
-  id             String          @id @default(uuid())
-  username       String          @unique @db.VarChar(20)
-  password       String
-  fullName       String
-  phoneNumber    String
-  birthDate      DateTime
-  role           Role            @default(DRIVER)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  maxCapacity  Int      @default(20)
-
-  // Relasi ke tabel lain
-  driverLocation DriverLocation?
-  vehicle        Vehicle?        // 1 Driver punya 1 Kendaraan
-  routes         Route[]         // 1 Driver bisa punya histori banyak rute
-}
 
 model DriverLocation {
   id          String   @id @default(uuid())
@@ -54,52 +31,193 @@ model DriverLocation {
 }
 
 model Vehicle {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  
-  plateNumber String   @unique
-  model       String   // cth: "Honda Beat", "Grand Max"
-  
-  maxWeight   Float    // Kapasitas Berat (kg) -> Constraint algoritma
-  maxVolume   Float    // Kapasitas Volume (liter) -> Constraint algoritma
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  plateNumber String @unique
+  model       String // Honda Beat dsb
+
+  maxWeight Float // kg, buat constraint clistering
+  maxVolume Float // liter, buat constraint clistering
 }
 
 model Package {
-  id            String        @id @default(uuid())
+  id            String @id @default(uuid())
   recipientName String
-  address       String        @db.Text
-  
-  lat           Float?
-  lng           Float?
-  
-  weight        Float         // Berat paket (kg)
-  volume        Float         // Volume paket (liter)
-  status        PackageStatus @default(PENDING)
+  address       String @db.Text
 
-  routeId       String?
-  route         Route?        @relation(fields: [routeId], references: [id])
-  
-  orderIndex    Int?          // Urutan pengiriman hasil GA (0, 1, 2...)
-  
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  depotId   String? //  berangkat dari mana
+  depot     Depot?  @relation(fields: [depotId], references: [id])
+
+  lat Float?
+  lng Float?
+
+  weight Float // kg
+  volume Float // liter
+  status PackageStatus @default(PENDING)
+
+  routeId String?
+  route   Route?  @relation(fields: [routeId], references: [id])
+
+  orderIndex Int? // Urutan pengiriman hasil GA (0, 1, 2...)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refOrderId String? // kasus katering : Menyimpan ID dari tabel Order katering
+  metadata   Json? // kasus katering : Menyimpan nama menu katering dalam bentuk JSON
 }
 
 model Route {
-  id            String      @id @default(uuid())
-  
-  driverId      String
-  driver        User        @relation(fields: [driverId], references: [id])
-  
-  status        RouteStatus @default(ACTIVE)
-  packages      Package[]
-  
-  totalDistance Float?      // Estimasi jarak total dari OSRM (km)
-  totalWeight   Float?      // NEW: Total berat paket dalam rute ini
-  totalVolume   Float?      // NEW: Total volume paket dalam rute ini
-  polyline      String?     @db.Text // NEW: Garis jalan raya dari OSRM buat digambar di Map
-  colorCode     String?     // NEW: Warna cluster (Hex code, misal "#FF0000")
-  
-  date          DateTime    @default(now())
+  id String @id @default(uuid())
+
+  driverId String
+  driver   User   @relation(fields: [driverId], references: [id])
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  depotId   String?
+  depot     Depot?  @relation(fields: [depotId], references: [id])
+
+  status   RouteStatus @default(ACTIVE)
+  packages Package[]
+
+  totalDistance Float? // Estimasi jarak total dari OSRM (km)
+  totalWeight   Float? 
+  totalVolume   Float? 
+  polyline      String? @db.Text // NEW: Garis jalan raya dari OSRM buat digambar di Map
+  colorCode     String? // Warna cluster (Hex code, misal "#FF0000")
+
+  date DateTime @default(now())
+}
+
+// ==========================================
+//        DOMAIN Transaksi (Katering, Farmasi)
+// ==========================================
+
+enum Role {
+  DRIVER
+  ADMIN
+  CUSTOMER //kasus : catering
+}
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique @db.VarChar(20)
+  password    String
+  fullName    String
+  phoneNumber String
+  birthDate   DateTime
+  role        Role     @default(DRIVER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders         Order[]
+  driverLocation DriverLocation?
+  vehicle        Vehicle? // 1 Driver punya 1 Kendaraan
+  routes         Route[] // 1 Driver bisa punya histori banyak rute
+
+  companyId String 
+  company   Company @relation(fields: [companyId], references: [id])
+}
+
+
+model Product {
+  id        String  @id @default(uuid())
+  name      String // "Nasi Ayam" (Katering), "Paracetamol" (Farmasi)
+  price     Int
+  weightEst Float 
+  volumeEst Float 
+  isActive  Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // Relasi ke keranjang belanja 
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  UNPAID
+  PAID
+  PREPARING
+  READY_FOR_DELIVERY
+  COMPLETED
+}
+
+model Order {
+  id         String @id @default(uuid())
+  customerId String
+  customer   User   @relation(fields: [customerId], references: [id]) 
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  totalPrice Int
+  status     OrderStatus @default(UNPAID)
+
+  // Titik tujuan yang diinput saat checkout
+  deliveryAddress String @db.Text
+  destLat         Float
+  destLng         Float
+
+  trackingId String? //kasus catering : Menyimpan ID Package dari mesin Logistik (cth: "PKG-001")
+  items      OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  productId String 
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity   Int
+  priceAtBuy Int
+}
+
+// ==========================================
+//        DOMAIN Company (Katering, Farmasi)
+// ==========================================
+model Company {
+  id       String  @id @default(uuid())
+  name     String // cth: "Katering Ibu Budi", "Apotek Sehat"
+  industry String? // cth: "F&B", "Healthcare", "Logistics"
+
+  // --- Relasi ke Domain Logistik ---
+  depots   Depot[]
+  users    User[]
+  packages Package[]
+  routes   Route[]
+  // --- Relasi ke Domain Katering ---
+  products Product[]
+  orders   Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Depot {
+  id      String @id @default(uuid())
+  name    String //  "Gudang Utama Mulyosari"
+  lat     Float
+  lng     Float
+  address String @db.Text
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  packages Package[] // biar Depot tahu paket apa saja yang berangkat dari sana
+  routes   Route[] //  rute ini mulai dari depot mana
 }

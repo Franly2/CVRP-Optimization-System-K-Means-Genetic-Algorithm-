@@ -5,9 +5,7 @@ import {
   IsEnum, 
   IsOptional, 
   IsDateString, 
-  IsNumber 
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { Role } from '@prisma/client';
 
 export class RegisterUserDto {
@@ -40,6 +38,10 @@ export class RegisterUserDto {
   @IsOptional()
   address?: string;
 
+  // @IsOptional()
+  // isAvailable?: boolean;
+
+  // buat kendaraan untuk role DRIVER
   @IsString()
   @IsOptional()
   vehicleType?: string;
@@ -48,11 +50,15 @@ export class RegisterUserDto {
   @IsOptional()
   plateNumber?: string;
 
-  @IsNumber()
   @IsOptional()
-  @Type(() => Number) 
-  maxCapacity?: number;
+  maxWeight?: number;
 
   @IsOptional()
-  isAvailable?: boolean;
+  maxVolume?: number;
+
+
+  // company
+  @IsString()
+  @IsNotEmpty()
+  companyId: string;
 }

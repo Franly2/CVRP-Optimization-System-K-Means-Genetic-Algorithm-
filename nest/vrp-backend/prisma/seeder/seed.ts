@@ -1,32 +1,45 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-misused-promises */
-// prisma/seeder/seed.ts
 import { PrismaClient } from '@prisma/client';
-import * as dotenv from 'dotenv';
-import { seedDrivers } from './driver.seeder';
-import { seedPackages } from './package.seeder';
+import { seedCompany } from './company.seeder';
+import { seedAdmin } from './admin.seeder';
+import { seedDriver } from './driver.seeder';
+import { seedCustomer } from './customer.seeder';
+import { seedProduct } from './product.seeder';
+import { seedOrder } from './order.seeder';     
+import { seedPackage } from './package.seeder'; 
+import { seedDepot } from './depot.seeder';
 
-dotenv.config();
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Memulai proses seeding Database...');
+  const company = await seedCompany(prisma);
+  const depot = await seedDepot(prisma, company.id); 
 
-  await seedDrivers(prisma);
-  await seedPackages(prisma);
+  await seedAdmin(prisma, company.id);
+  await seedDriver(prisma, company.id);
+  const customer = await seedCustomer(prisma, company.id);
+  const products = await seedProduct(prisma, company.id);
 
-  console.log('Semua proses Seeding Selesai!');
+  // Buat Transaksi (Order) - Tanpa perlu tahu soal Depot
+  const orders = await seedOrder(prisma, company.id, customer.id, products);
+
+  // Buat Logistik (Package) - disini baru hubungin ke Depot
+  await seedPackage(prisma, company.id, orders, depot.id);
+
+  console.log('DATABASE SIAP');
 }
 
 main()
-  .catch((e) => {
-    console.error('Error saat seeding:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('Error saat seeding:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

@@ -1,4 +1,14 @@
 npm i
-npx prisma generate
+# 1. Bersihkan database dan buat tabel baru
+npx prisma db push --force-reset
 
-npx prisma migrate reset (buat migrate ulang dan auto run seeder)
+# 2. Update intellisense TypeScript di node_modules
+npx prisma generate
+# 3. data
+npx prisma db seed
+
+
+<!-- buat sql baru -->
+# 2. Update 'kamus' TypeScript di node_modules
+npx prisma migrate dev --name messagehere
+

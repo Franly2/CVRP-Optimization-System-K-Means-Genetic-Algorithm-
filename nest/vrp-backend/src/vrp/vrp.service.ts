@@ -1,7 +1,4 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable prefer-const */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -41,30 +38,60 @@ export class VrpService {
 
     // Fungsi untuk generate payload testing
   async generateTestPayload() {
-    // Ambil 5 kurir pertama
-    const drivers = await this.prisma.user.findMany({
-      take: 5,
-      select: { id: true },
-    });
+  // 0. Ambil Perusahaan Pertama (Katering Ibu Budi)
+  const testCompany = await this.prisma.company.findFirst({
+    include: {
+      depots: true, // Ambil juga data depot yang tersambung ke company ini
+    }
+  });
 
-    // Ambil 50 paket pertama yang statusnya PENDING
-    const packages = await this.prisma.package.findMany({
-      where: { status: 'PENDING' },
-      take: 50,
-      select: { id: true },
-    });
-
-    return {
-      driverIds: drivers.map(d => d.id),
-      packageIds: packages.map(p => p.id),
-      depotLocation: {
-        lat: -7.3193, // Koordinat dummy Gudang 
-        lng: 112.7386
-      }
-    };
+  if (!testCompany) {
+    throw new Error('Belum ada data Perusahaan. Jalankan npx prisma db seed dulu!');
   }
 
-    private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  // Ambil Depot pertama milik perusahaan tersebut
+  const companyDepot = testCompany.depots[0];
+  if (!companyDepot) {
+    throw new Error('Depot tidak ditemukan untuk perusahaan ini. Cek seeder depot-mu!');
+  }
+
+  // 1. Ambil HANYA KURIR dari perusahaan tersebut
+  const drivers = await this.prisma.user.findMany({
+    where: { 
+      role: 'DRIVER', 
+      companyId: testCompany.id 
+    },
+    take: 5, // Seeder kamu bikin 10, ambil semua saja untuk test maksimal
+    select: { id: true },
+  });
+
+  // 2. Ambil HANYA PAKET PENDING dari perusahaan tersebut
+  const packages = await this.prisma.package.findMany({
+    where: { 
+      status: 'PENDING',
+      companyId: testCompany.id 
+    },
+    take: 50,
+    select: { id: true },
+  });
+
+  // 3. Validasi
+  if (drivers.length === 0) throw new Error('Driver tidak ditemukan.');
+  if (packages.length === 0) throw new Error('Tidak ada paket PENDING.');
+
+  // 4. Return Output yang Rapi & Dinamis
+  return {
+    companyId: testCompany.id,
+    driverIds: drivers.map((d) => d.id),
+    packageIds: packages.map((p) => p.id),
+    depotLocation: {
+      lat: companyDepot.lat, 
+      lng: companyDepot.lng
+    }
+  };
+  } 
+
+  private calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radius Bumi dalam km
     const dLat = this.deg2rad(lat2 - lat1);
     const dLon = this.deg2rad(lon2 - lon1);
@@ -82,102 +109,116 @@ export class VrpService {
     return deg * (Math.PI / 180);
   }
 
-    
-
-    async cluster(payload: ClusterRequest) {
-    const { driverIds, packageIds, depotLocation } = payload;
+  // FUNGSI UTAMA CLUSTERING 
+  async cluster(payload: ClusterRequest) { 
+    const { driverIds, packageIds, depotLocation, companyId } = payload;
     const MAX_ITERATIONS = 100; // Maksimal putaran K-Means
     const MAX_RADIUS_KM = 100;
 
-    // data hydration
+    // --- 1. DATA HYDRATION (Berdasarkan Company) ---
     const drivers = await this.prisma.user.findMany({
-      where: { id: { in: driverIds } },
-      select: { id: true, fullName: true, maxCapacity: true },
+      where: { 
+        id: { in: driverIds }, 
+        companyId: companyId, 
+        role: 'DRIVER'
+      },
+      select: { 
+        id: true, 
+        fullName: true, 
+        vehicle: true // Ambil detail kapasitas motor
+      },
     });
 
     const packages = await this.prisma.package.findMany({
-      where: { id: { in: packageIds }, status: 'PENDING' },
+      where: { 
+        id: { in: packageIds }, 
+        companyId: companyId, 
+        status: 'PENDING' 
+      },
       select: { id: true, lat: true, lng: true, weight: true, volume: true },
     });
 
-    // validasi dasar
+    // VALIDASI DASAR 
     if (drivers.length === 0) {
-      throw new BadRequestException('Kurir tidak ditemukan atau belum dipilih.');
+      throw new BadRequestException('Kurir tidak ditemukan atau berasal dari perusahaan lain.');
     }
     if (packages.length === 0) {
       throw new BadRequestException('Tidak ada paket PENDING yang bisa diproses.');
     }
     
-    // Validasi apakah ada paket yang lat/lng-nya kosong (asumsi pengirim input titik lokasi semua)
     const invalidPackages = packages.filter(p => !p.lat || !p.lng);
     if (invalidPackages.length > 0) {
        throw new BadRequestException(`Ada ${invalidPackages.length} paket yang belum punya koordinat GPS.`);
     }
 
-    // jalankan yg namanya clustering
-    let k = drivers.length; 
-
+    // SETUP CENTROIDS & K-MEANS 
+    const k = drivers.length; 
     type PackageData = typeof packages[0];
 
     interface Centroid {
       driverId: string;
       driverName: string;
-      maxCapacity: number;
+      maxWeight: number;
+      maxVolume: number;
       lat: number;
       lng: number;
       currentWeight: number;
+      currentVolume: number;
       assignedPackages: PackageData[];
     }
 
-    // ambil centroid awal
-    // ambil posisi 'k' paket secara acak buat jadi titik awal tiap kurir
     const centroids: Centroid[] = [];
     const shuffledPackages = [...packages].sort(() => 0.5 - Math.random());
+    
+    // Inisialisasi Titik Awal Centroid
     for (let i = 0; i < k; i++) {
       centroids.push({
         driverId: drivers[i].id,
         driverName: drivers[i].fullName,
-        maxCapacity: drivers[i].maxCapacity,
+        maxWeight: drivers[i].vehicle?.maxWeight || 50, 
+        maxVolume: drivers[i].vehicle?.maxVolume || 100,
         lat: shuffledPackages[i]?.lat || depotLocation.lat, 
         lng: shuffledPackages[i]?.lng || depotLocation.lng,
         currentWeight: 0,
+        currentVolume: 0,
         assignedPackages: [], 
       });
     }
 
     let hasChanged = true;
     let iteration = 0;
-    const unassignedPackages = []; // Menampung paket yang tidak muat di motor manapun atau diluar radius maksimal
+    const unassignedPackages: PackageData[] = []; 
 
-    // looping kmen
+    // Looping K-Means
     while (hasChanged && iteration < MAX_ITERATIONS) {
       hasChanged = false;
       iteration++;
       unassignedPackages.length = 0; 
 
-      // ngosongin muatan kurir di setiap awal iterasi buat dihitung ulang
+      // Reset muatan kurir di setiap awal iterasi
       centroids.forEach(c => {
         c.currentWeight = 0;
+        c.currentVolume = 0;
         c.assignedPackages = [];
       });
 
-      // itung jarak setiap paket ke tiap centroid, dan assign ke yang terdekat (dengan cek kapasitas)
+      // Assign paket ke kurir terdekat (Dengan Constraint Kapasitas)
       for (const pkg of packages) {
-        let nearestCentroid = null;
+        let nearestCentroid: Centroid | null = null;
         let minDistance = Infinity;
 
         for (const centroid of centroids) {
-          // CEK KAPASITAS: Apakah motor kurir ini masih muat?
-          if (centroid.currentWeight + pkg.weight <= centroid.maxCapacity) {
-          // eblom mempertimbangkan volume
-          
-          const distance = this.calculateHaversineDistance(
-            pkg.lat as number, 
-            pkg.lng as number, 
-            centroid.lat, 
-            centroid.lng
+          const isWeightFit = centroid.currentWeight + pkg.weight <= centroid.maxWeight;
+          const isVolumeFit = centroid.currentVolume + pkg.volume <= centroid.maxVolume;
+
+          if (isWeightFit && isVolumeFit) {
+            const distance = this.calculateHaversineDistance(
+              pkg.lat as number, 
+              pkg.lng as number, 
+              centroid.lat, 
+              centroid.lng
             );
-            // cek radius sama jarak terdekta, apa ini yang paling dekat?
+            
             if (distance < minDistance && distance <= MAX_RADIUS_KM) {
               minDistance = distance;
               nearestCentroid = centroid;
@@ -185,16 +226,17 @@ export class VrpService {
           }
         }
 
-        // assign paket ke kurir terdekat yang muat
+        // Masukkan paket ke kurir, atau buang ke unassigned jika semua motor penuh
         if (nearestCentroid) {
           nearestCentroid.assignedPackages.push(pkg);
           nearestCentroid.currentWeight += pkg.weight;
+          nearestCentroid.currentVolume += pkg.volume;
         } else {
           unassignedPackages.push(pkg);
         }
       }
 
-      // itung ulang posisi centroid dari rata-rata koordinat paket yang sudah diassign
+      // Hitung ulang posisi centroid
       for (const centroid of centroids) {
         if (centroid.assignedPackages.length > 0) {
           const sumLat = centroid.assignedPackages.reduce((sum, p) => sum + (p.lat as number), 0);
@@ -203,8 +245,7 @@ export class VrpService {
           const newLat = sumLat / centroid.assignedPackages.length;
           const newLng = sumLng / centroid.assignedPackages.length;
 
-          // Jika Centroid bergeser, maka K-Means harus looping lagi
-          // Toleransi pergeseran 0.0001 derajat (sekitar 11 meter)
+          // Cek konvergensi
           if (Math.abs(centroid.lat - newLat) > 0.0001 || Math.abs(centroid.lng - newLng) > 0.0001) {
             hasChanged = true;
           }
@@ -216,22 +257,27 @@ export class VrpService {
     }
 
     return {
-      message: 'Clustering K-Means Selesai!',
+      message: 'Clustering K-Means Berhasil!',
       totalIterationsRun: iteration,
       depot: depotLocation,
       summary: {
         totalDrivers: k,
-        totalPackages: packages.length,
+        totalPackagesToProcess: packages.length,
+        successfullyAssigned: packages.length - unassignedPackages.length,
         unassignedPackagesCount: unassignedPackages.length,
       },
       clusters: centroids.map(c => ({
         driverId: c.driverId,
         driverName: c.driverName,
         centerLocation: { lat: c.lat, lng: c.lng },
-        totalWeight: c.currentWeight,
-        maxCapacity: c.maxCapacity,
+        capacityUsage: {
+          currentWeight: c.currentWeight,
+          maxWeight: c.maxWeight,
+          currentVolume: c.currentVolume,
+          maxVolume: c.maxVolume,
+        },
         packageCount: c.assignedPackages.length,
-        packages: c.assignedPackages,
+        packages: c.assignedPackages, 
       })),
       unassigned: unassignedPackages, 
     };

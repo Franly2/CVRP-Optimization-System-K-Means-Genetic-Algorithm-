@@ -39,7 +39,11 @@ export class AuthService {
       fullName, 
       birthDate, 
       phoneNumber,
-      maxCapacity 
+      companyId,
+      vehicleType,
+      plateNumber,
+      maxWeight, 
+      maxVolume,
     } = data;
 
     const salt = await bcrypt.genSalt();
@@ -54,7 +58,15 @@ export class AuthService {
           fullName,
           phoneNumber,
           birthDate: new Date(birthDate),
-          maxCapacity: maxCapacity ? Number(maxCapacity) : 20,
+          companyId,
+          vehicle: {
+          create: {
+            plateNumber: plateNumber ?? "-",
+            model: vehicleType ?? "-",   
+            maxWeight: maxWeight ? Number(maxWeight) : 0, 
+            maxVolume: maxVolume ? Number(maxVolume) : 0,
+          },
+        },
         },
       });
 
