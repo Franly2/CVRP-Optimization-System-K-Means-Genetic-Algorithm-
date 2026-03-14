@@ -22,7 +22,6 @@ CVRP/
             └── vrp/           # Core Engine logistik (Clustering & GA)
 │       ├── prisma/          # Database schema (PostgreSQL) - Multi-tenant structure
 │       └── ...
-├── Docs/                    # Dokumentasi Skripsi & API
 └── README.md
 
 ```
