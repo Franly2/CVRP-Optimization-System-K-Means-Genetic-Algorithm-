@@ -25,6 +25,32 @@ export interface LoginResponse {
   companyId: string;
 }
 
+export interface meResponse {
+  id: string;
+  username: string;
+  fullName: string;
+  phoneNumber: string;
+  birthDate: Date;
+  role: Role;
+  company: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  depot: {
+    id: string;
+    name: string;
+    address: string;
+  } | null;
+  vehicle: {
+    id: string;
+    plateNumber: string;
+    model: string;
+    maxWeight: number;
+    maxVolume: number;
+  } | null;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
