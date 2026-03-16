@@ -7,6 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==========================================
+//        DOMAIN Logistik
+// ==========================================
 
 enum PackageStatus {
   PENDING // Belum diapa-apain (Masih di gudang)
@@ -19,7 +22,6 @@ enum RouteStatus {
   ACTIVE // Sedang jalan
   COMPLETED // Selesai
 }
-
 
 model DriverLocation {
   id          String   @id @default(uuid())
@@ -55,8 +57,8 @@ model Package {
   lat Float?
   lng Float?
 
-  weight Float // kg
-  volume Float // liter
+  weight Float // (Product.weightEst * quantity) 
+  volume Float // (Product.volumeEst * quantity)
   status PackageStatus @default(PENDING)
 
   routeId String?
@@ -67,8 +69,8 @@ model Package {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refOrderId String? // kasus katering : Menyimpan ID dari tabel Order katering
-  metadata   Json? // kasus katering : Menyimpan nama menu katering dalam bentuk JSON
+  refOrderId String? // kasus katering : ID dari tabel Order katering
+  metadata   Json? // kasus katering : nama menu katering dalam bentuk JSON
 }
 
 model Route {
@@ -86,8 +88,8 @@ model Route {
   packages Package[]
 
   totalDistance Float? // Estimasi jarak total dari OSRM (km)
-  totalWeight   Float? 
-  totalVolume   Float? 
+  totalWeight   Float?
+  totalVolume   Float?
   polyline      String? @db.Text // NEW: Garis jalan raya dari OSRM buat digambar di Map
   colorCode     String? // Warna cluster (Hex code, misal "#FF0000")
 
@@ -99,45 +101,56 @@ model Route {
 // ==========================================
 
 enum Role {
-  DRIVER
+  OWNER
   ADMIN
+  DRIVER
   CUSTOMER //kasus : catering
 }
 
 model User {
   id          String   @id @default(uuid())
-  username    String   @unique @db.VarChar(20)
+  username    String
   password    String
   fullName    String
   phoneNumber String
   birthDate   DateTime
   role        Role     @default(DRIVER)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  cartItems CartItem[]
 
   orders         Order[]
   driverLocation DriverLocation?
   vehicle        Vehicle? // 1 Driver punya 1 Kendaraan
   routes         Route[] // 1 Driver bisa punya histori banyak rute
 
-  companyId String 
-  company   Company @relation(fields: [companyId], references: [id])
+  companyId     String
+  company       Company        @relation(fields: [companyId], references: [id])
+  depotId     String?  // Opsional: Owner tidak punya depotId, Admin/Driver punya.
+  depot       Depot?   @relation(fields: [depotId], references: [id])
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([username, companyId]) // username "budi" hanya boleh ada 1 di dalam company yang sama
 }
 
-
 model Product {
-  id        String  @id @default(uuid())
-  name      String // "Nasi Ayam" (Katering), "Paracetamol" (Farmasi)
-  price     Int
-  weightEst Float 
-  volumeEst Float 
-  isActive  Boolean @default(true)
-
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
+  id             String            @id @default(uuid())
+  name           String // "Nasi Ayam" (Katering), "Paracetamol" (Farmasi)
+  price          Int
+  weightEst      Float
+  volumeEst      Float
+  isActive       Boolean           @default(true)
+  isSubscription Boolean           @default(false)
+  durationDays   Int? // Misal: 30 (untuk langganan 30 hari)
+  schedules      ProductSchedule[]
+  companyId      String
+  company        Company           @relation(fields: [companyId], references: [id])
 
   // Relasi ke keranjang belanja 
-  items OrderItem[]
+  items         OrderItem[]
+  subscriptions Subscription[]
+  cartItems     CartItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -154,10 +167,12 @@ enum OrderStatus {
 model Order {
   id         String @id @default(uuid())
   customerId String
-  customer   User   @relation(fields: [customerId], references: [id]) 
+  customer   User   @relation(fields: [customerId], references: [id])
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+  depotId      String
+  depot        Depot    @relation(fields: [depotId], references: [id])
 
   totalPrice Int
   status     OrderStatus @default(UNPAID)
@@ -180,29 +195,97 @@ model OrderItem {
   orderId String
   order   Order  @relation(fields: [orderId], references: [id])
 
-  productId String 
+  productId String
   product   Product @relation(fields: [productId], references: [id])
 
   quantity   Int
   priceAtBuy Int
 }
 
+enum SubStatus {
+  ACTIVE
+  PAUSED
+  EXPIRED
+}
+
+model Subscription {
+  id         String  @id @default(uuid())
+  customerId String
+  customer   User    @relation(fields: [customerId], references: [id])
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
+
+  startDate DateTime  @default(now())
+  endDate   DateTime // Dihitung dari startDate + durationDays produk
+  status    SubStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductSchedule {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  dayOfWeek   Int // Angka penanda hari: 1 = Senin, 2 = Selasa, ... 7 = Minggu
+  menuDetails String @db.Text // Isi menu hari itu, misal: "Nasi Putih, Ayam Goreng, Es Teh"
+
+  @@unique([productId, dayOfWeek]) // Mencegah Admin gak sengaja bikin 2 jadwal untuk hari Senin di paket yang sama
+}
+
+model CartItem {
+  id         String  @id @default(uuid())
+  customerId String
+  customer   User    @relation(fields: [customerId], references: [id])
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, productId]) // Biar satu user gak punya 2 baris produk yang sama di keranjang (cukup nambah quantity)
+}
+
 // ==========================================
 //        DOMAIN Company (Katering, Farmasi)
 // ==========================================
+enum PlanTier {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
 model Company {
   id       String  @id @default(uuid())
+  slug     String  @unique // "katering-ibu-budi"
   name     String // cth: "Katering Ibu Budi", "Apotek Sehat"
   industry String? // cth: "F&B", "Healthcare", "Logistics"
 
+  // --- NEW: UI/UX Branding ---
+  logoUrl        String?
+  colorPrimary   String? @default("#1976D2")
+  colorSecondary String? @default("#FFC107")
+
+  // --- NEW: SaaS Limits & Tiering ---
+  tier            PlanTier @default(STARTER)
+  maxDepots       Int      @default(1)
+  maxDrivers      Int      @default(3)
+  maxOrdersPerDay Int      @default(50)
+
   // --- Relasi ke Domain Logistik ---
-  depots   Depot[]
-  users    User[]
-  packages Package[]
-  routes   Route[]
+  depots        Depot[]
+  users         User[]
+  packages      Package[]
+  routes        Route[]
   // --- Relasi ke Domain Katering ---
-  products Product[]
-  orders   Order[]
+  products      Product[]
+  orders        Order[]
+  subscriptions Subscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -217,6 +300,8 @@ model Depot {
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+  users     User[]
+  orders    Order[] // list order yang berangkat dari depot ini (opsional, bisa juga diambil dari rute)
 
   packages Package[] // biar Depot tahu paket apa saja yang berangkat dari sana
   routes   Route[] //  rute ini mulai dari depot mana

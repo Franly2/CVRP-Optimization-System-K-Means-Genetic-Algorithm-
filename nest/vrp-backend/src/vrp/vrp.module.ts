@@ -2,10 +2,11 @@
 import { Module } from '@nestjs/common';
 import { VrpService } from './vrp.service';
 import { VrpController } from './vrp.controller';
-import { PrismaService } from 'prisma/prisma.service';
+import { PrismaModule } from 'prisma/prisma.module';
 
 @Module({
-  providers: [VrpService, PrismaService],
+  imports : [PrismaModule],
+  providers: [VrpService],
   controllers: [VrpController]
 })
 export class VrpModule {}

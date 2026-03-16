@@ -22,6 +22,7 @@ export interface LoginResponse {
   access_token: string;
   role: string;
   username: string;
+  companyId: string;
 }
 
 @Injectable()
@@ -50,6 +51,16 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     try {
+      // Perbaikan: Hanya buat data kendaraan jika dia mendaftar sebagai kurir
+      const vehicleData = role === 'DRIVER' ? {
+        create: {
+          plateNumber: plateNumber ?? "-",
+          model: vehicleType ?? "-",   
+          maxWeight: maxWeight ? Number(maxWeight) : 0, 
+          maxVolume: maxVolume ? Number(maxVolume) : 0,
+        },
+      } : undefined;
+
       await this.prisma.user.create({
         data: {
           username,
@@ -59,38 +70,38 @@ export class AuthService {
           phoneNumber,
           birthDate: new Date(birthDate),
           companyId,
-          vehicle: {
-          create: {
-            plateNumber: plateNumber ?? "-",
-            model: vehicleType ?? "-",   
-            maxWeight: maxWeight ? Number(maxWeight) : 0, 
-            maxVolume: maxVolume ? Number(maxVolume) : 0,
-          },
-        },
+          ...(vehicleData && { vehicle: vehicleData }), // Gabungkan secara dinamis
         },
       });
 
       return {
-      status: 'success',
-      message: 'Akun berhasil dibuat',
-    };
+        status: 'success',
+        message: 'Akun berhasil dibuat',
+      };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('Username sudah terpakai!');
+          // Pesan error disesuaikan dengan arsitektur baru
+          throw new ConflictException('Username sudah terpakai di perusahaan ini!');
         }
       }
-      
       console.error('Registration Error:', error);
       throw new InternalServerErrorException('Gagal mendaftar user');
     }
   }
 
-  async login(data: LoginUserDto): Promise<LoginResponse> {
+  async login(companySlug: string, data: LoginUserDto): Promise<LoginResponse> {
     const { username, password } = data;
+    // Verifikasi perusahaan berdasarkan link URL (GET)
+    const company = await this.prisma.company.findUnique({
+      where: { slug: companySlug },
+    });
 
-    const user = await this.prisma.user.findUnique({
-      where: { username },
+    if (!company) {
+      throw new UnauthorizedException('Perusahaan tidak ditemukan atau URL salah');
+    }
+    const user = await this.prisma.user.findFirst({
+      where: { username, companyId: company.id },
     });
 
     if (!user) {
@@ -107,6 +118,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       role: user.role,
+      companyId: user.companyId,
     };
 
     const token = await this.jwtService.signAsync(payload);
@@ -115,6 +127,7 @@ export class AuthService {
       access_token: token,
       role: user.role,
       username: user.username,
+      companyId: user.companyId,
     };
   }
 }

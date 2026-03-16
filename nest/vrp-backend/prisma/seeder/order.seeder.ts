@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
 // prisma/seeder/package.seeder.ts
 /* eslint-disable prettier/prettier */
@@ -16,7 +15,7 @@ export async function seedOrder(
   companyId: string,
   customerId: string,
   products: any[],
-  // depotId: string
+  depotId: string
 
 ) {
   const createdOrders = [];
@@ -33,7 +32,7 @@ export async function seedOrder(
     const order = await prisma.order.create({
       data: {
         companyId: companyId,
-        // depotId: depotId,
+        depotId: depotId,
         customerId: customerId,
         totalPrice: products[0].price * 2,
         status: OrderStatus.PAID,
