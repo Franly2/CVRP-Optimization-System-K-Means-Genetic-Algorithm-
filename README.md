@@ -1,4 +1,4 @@
-# 🚚 Agnostic SaaS Logistics Platform: E-Commerce & Fleet Management (Hybrid K-Means + Genetic Algorithm)
+# 🚚 Pembuatan Sistem Informasi E-Commerce dan Logistik Berbasis SaaS Multi-Tenant dengan Implementasi Hybrid K-Means Clustering dan Algoritma Genetika (Studi Kasus: UMKM Katering)
 
 Sistem informasi terintegrasi berbasis **Software as a Service (SaaS)** yang menggabungkan modul E-commerce (pemesanan) dengan mesin optimasi logistik cerdas. Aplikasi ini memecahkan masalah **Capacitated Vehicle Routing Problem (CVRP)** dengan membagi wilayah pengiriman secara otomatis kepada kurir dan menentukan urutan jalan paling efisien.
 
@@ -7,19 +7,23 @@ Sistem informasi terintegrasi berbasis **Software as a Service (SaaS)** yang men
 
 ```text
 CVRP/
-├── gui/
-│   ├── mobile/              # React Native App (Expo) - Aplikasi Kurir & Customer (Checkout)
+├── gui/                     # Expo React Native App (Front-end)
+│   ├── mobile/              # React Mobile Dashboard - Untuk kurir dan customer
 │   │   ├── app/             # App screens and navigation
 │   │   ├── components/      # Reusable UI components
 │   │   └── ...
-│   └── web/                 # React Web Dashboard - Untuk Admin Tenant (Manajemen Produk, Order, & Clustering View)
+│   └── web/                 # React Web Dashboard - Untuk Admin Tenant
 ├── nest/
-│   └── vrp-backend/         # NestJS backend server (Core Engine)
+│   └── vrp-backend/         # NestJS backend server (Back=end Engine)
 │       ├── src/             # Logic Algoritma (K-Means, GA, OSRM) & Business API
-            ├── auth/          # Login, Register, Logout, JWT, Role Guard
-            ├── tenant/        # Manajemen Menu Katering 
-            ├── orders/        # Proses Checkout Customer & Riwayat Transaksi 
-            └── vrp/           # Engine logistik (Clustering & GA)
+            ├── auth/          # Khusus verifikasi dan autentikasi
+            ├── tenant/        # Khusus Manajemen Akun Perusahaan (Company table) 
+            ├── human/         # Khusus Manajemen Manusia 
+            └── depot/         # Khusus Manajemen depot/cabang
+            └── catalog/       # Khusus Manajemen katalog produk
+            └── analytics/     # Menampilkan data dari tabel Order dan Package untuk dihitung.
+            └── sales/         # Khusus menangani proses keranjang, dan pemesanan
+            └── vrp/           # Khusus menangani kebutuhan logistik
 │       ├── prisma/          # Database schema (PostgreSQL) - Multi-tenant structure
 │       └── ...
 └── README.md
