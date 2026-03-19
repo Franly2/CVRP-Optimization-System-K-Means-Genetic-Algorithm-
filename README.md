@@ -16,10 +16,10 @@ CVRP/
 ├── nest/
 │   └── vrp-backend/         # NestJS backend server (Core Engine)
 │       ├── src/             # Logic Algoritma (K-Means, GA, OSRM) & Business API
-            ├── auth/          # Login, Register, JWT, Role Guard
-            ├── products/      # Manajemen Menu Katering (Admin tenant) 
+            ├── auth/          # Login, Register, Logout, JWT, Role Guard
+            ├── tenant/        # Manajemen Menu Katering 
             ├── orders/        # Proses Checkout Customer & Riwayat Transaksi 
-            └── vrp/           # Core Engine logistik (Clustering & GA)
+            └── vrp/           # Engine logistik (Clustering & GA)
 │       ├── prisma/          # Database schema (PostgreSQL) - Multi-tenant structure
 │       └── ...
 └── README.md
