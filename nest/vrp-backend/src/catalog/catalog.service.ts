@@ -1,17 +1,15 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { InternalServerErrorException } from '@nestjs/common';
-import { AddProductDto } from '../catalog/dto/addProduct.dto';
+import { AddProductDto } from './dto/addProduct.dto';
 
 @Injectable()
-export class TenantService {
-    constructor(private readonly prisma: PrismaService) {}
+export class CatalogService {
+ constructor(private readonly prisma: PrismaService) {}
 
     async createProduct(companyId: string, data: AddProductDto) {
       try {
@@ -55,4 +53,6 @@ export class TenantService {
         throw new InternalServerErrorException('Gagal menambahkan produk.');
       }
     }
+
+    
 }

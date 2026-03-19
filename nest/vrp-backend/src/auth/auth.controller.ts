@@ -22,7 +22,7 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK) 
-  @Post(':companySlug/login') // <-- Kunci SaaS: URL login harus ada nama kateringnya
+  @Post(':companySlug/login') 
   async loginUser(
     @Param('companySlug') companySlug: string,
     @Body() data: LoginUserDto
@@ -32,7 +32,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard )
   @Get('me')
-  async getProfile(@GetUser() userPayload: any) : Promise<meResponse> { // userPayload cuma berisi { id, role, companyId }
+  async getProfile(@GetUser() userPayload: any) : Promise<meResponse> { 
     console.log('Isi Payload JWT:', userPayload);
     const fullUser = await this.prisma.user.findUnique({
       where: { id: userPayload.userId },

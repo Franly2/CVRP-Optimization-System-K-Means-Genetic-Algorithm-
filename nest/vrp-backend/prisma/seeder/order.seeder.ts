@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
-// prisma/seeder/package.seeder.ts
+// prisma/seeder/order.seeder.ts
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -15,8 +15,8 @@ export async function seedOrder(
   companyId: string,
   customerId: string,
   products: any[],
-  depotId: string
-
+  depotId: string,
+  deliveryShiftId: string // 👈 TAMBAHAN BARU: Parameter ID Shift
 ) {
   const createdOrders = [];
 
@@ -36,7 +36,8 @@ export async function seedOrder(
         customerId: customerId,
         totalPrice: products[0].price * 2,
         status: OrderStatus.PAID,
-        
+        deliveryShiftId: deliveryShiftId, 
+
         deliveryAddress: `Rumah Pelanggan No. ${i}, Jalan Dummy Surabaya`,
         destLat: randomLat,
         destLng: randomLng, 

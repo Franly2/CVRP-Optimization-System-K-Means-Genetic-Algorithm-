@@ -1,8 +1,16 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable prettier/prettier */
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-export async function seedDriver(prisma: PrismaClient, companyId: string) {
+export async function seedDriver(
+  prisma: PrismaClient, 
+  companyId: string, 
+  depotId: string // 👈 Tambahkan parameter depotId
+) {
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync('password123', salt);
 
@@ -34,6 +42,7 @@ export async function seedDriver(prisma: PrismaClient, companyId: string) {
         birthDate: new Date('1990-01-01'),
         role: Role.DRIVER,
         companyId: companyId,
+        depotId: depotId, // 👈 Hubungkan driver ke depot agar jelas pangkalan jalannya
         vehicle: {
           create: {
             plateNumber: `L ${1230 + identifier} ABC`, 

@@ -14,6 +14,7 @@ export async function seedPackage(
   companyId: string,
   ordersData: any[], // <--  array dari Order
   depotId: string,
+  deliveryShiftId: string 
 ) {
   console.log('⏳ Sedang memproses 50 Package ke Logistik...');
 
@@ -26,6 +27,9 @@ export async function seedPackage(
       data: {
         companyId: companyId,
         depotId: depotId, 
+        
+        deliveryShiftId: deliveryShiftId, // 👈 TAMBAHAN BARU: Masukkan ke database
+        
         recipientName: `Penerima Order ${orderData.id.substring(0, 5)}`,
         address: orderData.deliveryAddress,
         lat: orderData.destLat,
@@ -50,5 +54,5 @@ export async function seedPackage(
     });
   }
 
-  console.log(`50 Package Logistik berhasil dibuat dan resi terhubung!`);
+  console.log(`✅ 50 Package Logistik berhasil dibuat dan resi terhubung!`);
 }

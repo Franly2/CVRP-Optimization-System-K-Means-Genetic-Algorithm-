@@ -1,4 +1,6 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -6,6 +8,7 @@
 /* eslint-disable prettier/prettier */
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
@@ -15,7 +18,7 @@ import { RegisterUserDto } from './dto/register.dto';
 import { LoginUserDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, Role } from '@prisma/client';
+import { AccountStatus, Prisma, Role } from '@prisma/client';
 
 // Interface untuk respon login
 export interface LoginResponse {
@@ -118,7 +121,6 @@ export class AuthService {
 
   async login(companySlug: string, data: LoginUserDto): Promise<LoginResponse> {
     const { username, password } = data;
-    // Verifikasi perusahaan berdasarkan link URL (GET)
     const company = await this.prisma.company.findUnique({
       where: { slug: companySlug },
     });
@@ -133,6 +135,20 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Username tidak terdaftar');
     }
+
+    if(user.role !== 'OWNER') {
+      if (user.status === AccountStatus.PENDING) {
+        throw new ForbiddenException('Akun Anda masih menunggu persetujuan Owner.');
+      }
+
+      if (user.status === AccountStatus.REJECTED) {
+        throw new ForbiddenException('Maaf, pendaftaran akun Anda ditolak.');
+      }
+
+      if (user.status === AccountStatus.SUSPENDED) {
+        throw new ForbiddenException('Akun Anda telah dinonaktifkan. Silakan hubungi Admin.');
+      }
+    } 
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 

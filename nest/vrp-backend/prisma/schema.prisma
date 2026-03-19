@@ -23,6 +23,12 @@ enum RouteStatus {
   COMPLETED // Selesai
 }
 
+enum VehicleType {
+  MOBIL 
+  MOTOR 
+}
+
+
 model DriverLocation {
   id          String   @id @default(uuid())
   userId      String   @unique
@@ -37,6 +43,7 @@ model Vehicle {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
+  type        VehicleType @default(MOTOR)
   plateNumber String @unique
   model       String // Honda Beat dsb
 
@@ -65,6 +72,8 @@ model Package {
   route   Route?  @relation(fields: [routeId], references: [id])
 
   orderIndex Int? // Urutan pengiriman hasil GA (0, 1, 2...)
+  deliveryShiftId String
+  deliveryShift   DeliveryShift @relation(fields: [deliveryShiftId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,6 +116,13 @@ enum Role {
   CUSTOMER //kasus : catering
 }
 
+enum AccountStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SUSPENDED 
+}
+
 model User {
   id          String   @id @default(uuid())
   username    String
@@ -115,6 +131,7 @@ model User {
   phoneNumber String
   birthDate   DateTime
   role        Role     @default(DRIVER)
+  status      AccountStatus @default(PENDING)
 
   cartItems CartItem[]
 
@@ -146,14 +163,27 @@ model Product {
   schedules      ProductSchedule[]
   companyId      String
   company        Company           @relation(fields: [companyId], references: [id])
+  images         ProductImage[]
 
   // Relasi ke keranjang belanja 
   items         OrderItem[]
   subscriptions Subscription[]
   cartItems     CartItem[]
-
+  availableShifts DeliveryShift[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String   // Tautan gambarnya (dari AWS S3/Cloudinary)
+  isMain    Boolean  @default(false) // Apakah ini foto cover depan?
+  order     Int      @default(0) // Urutan foto (0, 1, 2, dst)
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }
 
 enum OrderStatus {
@@ -184,6 +214,8 @@ model Order {
 
   trackingId String? //kasus catering : Menyimpan ID Package dari mesin Logistik (cth: "PKG-001")
   items      OrderItem[]
+  deliveryShiftId String
+  deliveryShift   DeliveryShift @relation(fields: [deliveryShiftId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,6 +232,21 @@ model OrderItem {
 
   quantity   Int
   priceAtBuy Int
+}
+
+model DeliveryShift {
+  id        String   @id @default(uuid())
+  name      String   // Misal: "Makan Siang", "Shift Pagi"
+  startTime String   // Misal: "11:00"
+  endTime   String   // Misal: "13:00"
+  
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+
+  // Relasi
+  products  Product[] // Produk apa saja yang bisa dikirim di jam ini
+  orders    Order[]
+  packages  Package[]
 }
 
 enum SubStatus {
@@ -286,6 +333,7 @@ model Company {
   products      Product[]
   orders        Order[]
   subscriptions Subscription[]
+  deliveryShifts DeliveryShift[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
