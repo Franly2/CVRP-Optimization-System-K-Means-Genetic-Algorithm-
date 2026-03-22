@@ -18,6 +18,8 @@ npx prisma migrate dev --name messagehere
 npx nest g resource catalog
 
 
+
+
 . /tenant (Khusus Manajemen Akun Perusahaan SaaS)
 
     Fungsi: Hanya untuk mengurus tabel Company.
@@ -47,3 +49,26 @@ npx nest g resource catalog
     Fungsi: Menarik data dari tabel Order dan Package untuk dihitung.
 
     Isi: Menampilkan total pendapatan hari ini, jumlah pesanan sukses vs gagal, dsb.
+
+
+
+CREATE ROLE app_user LOGIN PASSWORD 'user';
+
+ALTER ROLE app_user NOBYPASSRLS;
+
+-- schema
+GRANT USAGE ON SCHEMA public TO app_user;
+
+-- tables
+GRANT SELECT, INSERT, UPDATE, DELETE 
+ON ALL TABLES IN SCHEMA public 
+TO app_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user;
+
+-- sequences
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT USAGE, SELECT ON SEQUENCES TO app_user;

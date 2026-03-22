@@ -9,29 +9,36 @@ import { AddDepotDto } from './dto/addDepot.dto';
 
 @Injectable()
 export class DepotService {
-        constructor(private readonly prisma: PrismaService) {}
+    constructor(private readonly prisma: PrismaService) {}
     
 
     async createDepot(companyId: string, data: AddDepotDto) {
-    try{
-        const newDepot = await this.prisma.depot.create({
-        data: {
+    try {
+      const result = await this.prisma.withTenant(companyId, async (tx) => {
+        
+        const newDepot = await tx.depot.create({
+          data: {
             name: data.name,           
             address: data.address,   
             lat: data.lat,           
             lng: data.lng,            
             companyId: companyId,    
-        },
+          },
         });
 
         return {
-        status: 'success',
-        message: 'Depot / Cabang baru berhasil didaftarkan',
-        data: newDepot,
+          status: 'success',
+          message: 'Depot / Cabang baru berhasil didaftarkan',
+          data: newDepot,
         };
+
+      });
+
+      return result;
+      
     } catch (error) {
-        console.error('Error creating depot:', error);
-        throw new Error('Gagal membuat depot baru');
+      console.error('Error creating depot:', error);
+      throw new Error('Gagal membuat depot baru');
     }
-  }
+}
 }

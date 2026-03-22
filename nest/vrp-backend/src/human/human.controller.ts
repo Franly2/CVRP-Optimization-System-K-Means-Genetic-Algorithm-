@@ -2,12 +2,13 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
-import { Body, Controller, ForbiddenException, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Patch, Post, UseGuards } from '@nestjs/common';
 import { HumanService } from './human.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AddAdminDto } from './dto/addAdmin.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { addDriverDto } from './dto/addDriver.dto';
+import { ChangeStatusDto } from './dto/changeStatus.dto';
 
 @UseGuards(JwtAuthGuard )
 @Controller('human')
@@ -42,6 +43,7 @@ export class HumanController {
 
     @Post('accept-driver')
     async acceptDriver(
+        @GetUser('companyId') companyId: string,
         @Body('userId') driverId: string,
         @GetUser('role') role: string
     ) {
@@ -49,6 +51,18 @@ export class HumanController {
             throw new ForbiddenException('Akses ditolak! Hanya Owner yang bisa menerima Driver.');
         }
 
-        return await this.humanService.acceptDriver(driverId);
+        return await this.humanService.acceptDriver(companyId, driverId);
+    }
+
+    @Patch('status-employee') 
+    async changeStatusEmployee(
+        @GetUser('companyId') companyId: string,
+        @Body() dto: ChangeStatusDto, 
+        @GetUser('role') role: string
+    ) {
+        if (role !== 'OWNER') {
+            throw new ForbiddenException('Akses ditolak! Hanya Owner yang bisa mengubah status karyawan.');
+        }       
+        return await this.humanService.changeStatusEmployee(companyId, dto.userId, dto.status);
     }
 }

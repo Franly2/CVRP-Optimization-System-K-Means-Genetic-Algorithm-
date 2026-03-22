@@ -1,18 +1,14 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable prettier/prettier */
-/* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-import { PrismaClient } from '@prisma/client';
+/* eslint-disable prettier/prettier */
+import { Prisma } from '@prisma/client';
 
 export async function seedPackage(
-  prisma: PrismaClient,
+  tx: Prisma.TransactionClient, // 👈 Gunakan tx
   companyId: string,
-  ordersData: any[], // <--  array dari Order
+  ordersData: any[], 
   depotId: string,
   deliveryShiftId: string 
 ) {
@@ -23,12 +19,12 @@ export async function seedPackage(
     const totalWeight = productInfo.weightEst * orderData.items[0].quantity;
     const totalVolume = productInfo.volumeEst * orderData.items[0].quantity;
 
-    const pkg = await prisma.package.create({
+    // 1. Buat Package (Domain Logistik)
+    const pkg = await tx.package.create({
       data: {
         companyId: companyId,
         depotId: depotId, 
-        
-        deliveryShiftId: deliveryShiftId, // 👈 TAMBAHAN BARU: Masukkan ke database
+        deliveryShiftId: deliveryShiftId,
         
         recipientName: `Penerima Order ${orderData.id.substring(0, 5)}`,
         address: orderData.deliveryAddress,
@@ -47,10 +43,15 @@ export async function seedPackage(
       },
     });
 
-    // handshake (isi trackingId di Order dengan ID Package)
-    await prisma.order.update({
+    // 2. Handshake (Update Order dengan ID Package)
+    // RLS akan memastikan user hanya bisa update Order milik companyId yang sama
+    await tx.order.update({
       where: { id: orderData.id },
-      data: { trackingId: pkg.id },
+      data: { 
+        trackingId: pkg.id,
+        // Status diubah menjadi READY_FOR_DELIVERY karena paket sudah dibuat
+        status: 'READY_FOR_DELIVERY' 
+      },
     });
   }
 

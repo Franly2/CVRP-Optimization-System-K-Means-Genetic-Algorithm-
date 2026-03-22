@@ -1,6 +1,4 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 import { Body, Controller, ForbiddenException, Post, UseGuards } from '@nestjs/common';
 import { CatalogService } from './catalog.service';
@@ -13,7 +11,7 @@ import { GetUser } from 'src/auth/get-user.decorator';
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
-  @Post('products')
+  @Post('product')
     async createProduct(
       @Body() dto: AddProductDto,
       @GetUser('companyId') companyId: string,

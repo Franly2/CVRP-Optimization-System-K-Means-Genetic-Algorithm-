@@ -3,13 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
-import { PrismaClient, Role } from '@prisma/client';
+import { Prisma, Role, AccountStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 export async function seedDriver(
-  prisma: PrismaClient, 
+  tx: Prisma.TransactionClient, // 👈 Ganti ke TransactionClient
   companyId: string, 
-  depotId: string // 👈 Tambahkan parameter depotId
+  depotId: string 
 ) {
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync('password123', salt);
@@ -33,7 +33,8 @@ export async function seedDriver(
     const data = driversData[i];
     const identifier = i + 1;
 
-    await prisma.user.create({
+    // Gunakan tx untuk menembus RLS
+    await tx.user.create({
       data: {
         username: `driver_kurir_${identifier}`,
         password: hashedPassword,
@@ -41,14 +42,16 @@ export async function seedDriver(
         phoneNumber: data.phone,
         birthDate: new Date('1990-01-01'),
         role: Role.DRIVER,
+        status: AccountStatus.ACCEPTED, // 👈 Tambahkan agar driver bisa langsung login ke mobile app
         companyId: companyId,
-        depotId: depotId, // 👈 Hubungkan driver ke depot agar jelas pangkalan jalannya
+        depotId: depotId,
         vehicle: {
           create: {
             plateNumber: `L ${1230 + identifier} ABC`, 
             model: identifier % 2 === 0 ? 'Honda Vario' : 'Yamaha Lexi',
             maxWeight: 60.0, 
             maxVolume: 120.0,
+            companyId: companyId, // 👈 WAJIB: Vehicle juga harus punya companyId agar lolos RLS
           },
         },
       },

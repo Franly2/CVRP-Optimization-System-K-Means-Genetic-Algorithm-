@@ -12,8 +12,8 @@ import { AddAdminDto } from './dto/addAdmin.dto';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { addDriverDto } from './dto/addDriver.dto';
-import { AccountStatus, Role } from '@prisma/client/wasm';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { AccountStatus, Role } from '@prisma/client';
 
 @Injectable()
 export class HumanService {
@@ -21,114 +21,156 @@ export class HumanService {
     
     async createAdmin(companyId: string, data: AddAdminDto) {
     try {
-      // 1. Cek apakah username sudah dipakai
-      const existingUser = await this.prisma.user.findFirst({
-        where: { username: data.username }
+      const result = await this.prisma.withTenant(companyId, async (tx) => {
+        
+        const existingUser = await tx.user.findFirst({
+          where: { username: data.username }
+        });
+        if (existingUser) throw new BadRequestException('Username sudah terdaftar');
+
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+
+        const newAdmin = await tx.user.create({
+          data: {
+            username: data.username,
+            password: hashedPassword,
+            fullName: data.fullName,
+            role: 'ADMIN',       
+            status: AccountStatus.ACCEPTED,
+            companyId: companyId, 
+            depotId: data.depotId, 
+            phoneNumber: data.phoneNumber,         
+            birthDate: new Date(data.birthDate),
+          },
+        });
+
+        const { password, ...adminWithoutPassword } = newAdmin;
+        
+        return {
+          status: 'success',
+          message: 'Admin Depot berhasil ditambahkan',
+          data: adminWithoutPassword,
+        };
       });
-      if (existingUser) throw new BadRequestException('Username sudah terdaftar');
 
-      const hashedPassword = await bcrypt.hash(data.password, 10);
+      return result;
 
-      const newAdmin = await this.prisma.user.create({
-        data: {
-          username: data.username,
-          password: hashedPassword,
-          fullName: data.fullName,
-          role: 'ADMIN',       
-          companyId: companyId, 
-          depotId: data.depotId, 
-          phoneNumber: data.phoneNumber,         
-          birthDate: new Date(data.birthDate),
-        },
-      });
-
-      // Hapus password dari return
-      const { password, ...adminWithoutPassword } = newAdmin;
-      
-      return {
-        status: 'success',
-        message: 'Admin Depot berhasil ditambahkan',
-        data: adminWithoutPassword,
-      };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      console.error(error);
+      console.error('Error creating admin:', error);
       throw new InternalServerErrorException('Gagal menambah admin');
     }
-   }
+  }
 
    async createDriver(dto: addDriverDto, role: string) {
-    const depot = await this.prisma.depot.findUnique({
-      where: { id: dto.depotId },
-    });
+    return this.prisma.withTenant(dto.companyId, async (tx) => {
+      
+      const depot = await tx.depot.findUnique({
+        where: { id: dto.depotId },
+      });
 
-    if (!depot) {
-      throw new NotFoundException('Depot tidak ditemukan. Driver wajib memiliki pangkalan.');
-    }
+      if (!depot) {
+        throw new NotFoundException('Depot tidak ditemukan. Driver wajib memiliki pangkalan.');
+      }
 
-    const existingUser = await this.prisma.user.findFirst({
-      where: { 
-        username: dto.username,
-        companyId: dto.companyId 
-      },
-    });
+      const existingUser = await tx.user.findFirst({
+        where: { 
+          username: dto.username,
+          // companyId: dto.companyId // Opsional karena pake rls
+        },
+      });
 
-    if (existingUser) {
-      throw new BadRequestException('Username sudah terdaftar di perusahaan ini.');
-    }
+      if (existingUser) {
+        throw new BadRequestException('Username sudah terdaftar di perusahaan ini.');
+      }
 
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash('password123', salt);
+      const salt = await bcrypt.genSalt();
+      const hashedPassword = await bcrypt.hash('password123', salt);
 
-    const finalStatus = role === Role.OWNER 
-    ? AccountStatus.ACCEPTED 
-    : AccountStatus.PENDING;
+      const finalStatus = role === Role.OWNER 
+        ? AccountStatus.ACCEPTED 
+        : AccountStatus.PENDING;
 
-    // Insert User + Vehicle + DriverLocation (Default dari Depot)
-    return this.prisma.user.create({
-      data: {
-        username: dto.username,
-        password: hashedPassword,
-        fullName: dto.fullName, 
-        phoneNumber: dto.phoneNumber,
-        birthDate: new Date(dto.birthDate),
-        role: Role.DRIVER,
-        companyId: dto.companyId,
-        depotId: dto.depotId,
-        status: finalStatus,
+      return tx.user.create({
+        data: {
+          username: dto.username,
+          password: hashedPassword,
+          fullName: dto.fullName, 
+          phoneNumber: dto.phoneNumber,
+          birthDate: new Date(dto.birthDate),
+          role: Role.DRIVER,
+          companyId: dto.companyId,
+          depotId: dto.depotId,
+          status: finalStatus,
 
-        vehicle: {
-          create: {
-            type: dto.vehicleType,
-            plateNumber: dto.plateNumber,
-            model: dto.vehicleModel,
-            maxWeight: dto.maxWeight,
-            maxVolume: dto.maxVolume,
+          vehicle: {
+            create: {
+              type: dto.vehicleType,
+              plateNumber: dto.plateNumber,
+              model: dto.vehicleModel,
+              maxWeight: dto.maxWeight,
+              maxVolume: dto.maxVolume,
+              companyId: dto.companyId
+            },
+          },
+
+          driverLocation: {
+            create: {
+              lat: depot.lat,
+              lng: depot.lng,
+              companyId: dto.companyId
+            },
           },
         },
-
-        driverLocation: {
-          create: {
-            lat: depot.lat,
-            lng: depot.lng,
-          },
+        include: {
+          vehicle: true,
+          driverLocation: true, 
         },
-      },
-      include: {
-        vehicle: true,
-        driverLocation: true, 
-      },
+      });
+      
+    });
+}
+
+  async acceptDriver(companyId: string, userId: string) {
+    return this.prisma.withTenant(companyId, async (tx) => {
+      
+      const user = await tx.user.findUnique({ 
+        where: { id: userId } 
+      });
+      
+      if (!user) {
+        throw new NotFoundException('User tidak ditemukan atau bukan dari perusahaan Anda');
+      }
+
+      return tx.user.update({
+        where: { id: userId },
+        data: { status: AccountStatus.ACCEPTED },
+      });
+      
     });
   }
 
-  async acceptDriver(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    
-    if (!user) throw new NotFoundException('User tidak ditemukan');
+  async changeStatusEmployee(companyId: string, userId: string, status: AccountStatus) {
+    return this.prisma.withTenant(companyId, async (tx) => {
+      const user = await tx.user.findUnique({ 
+        where: { id: userId } 
+      });
+      
+      if (!user) {
+        throw new NotFoundException('Karyawan tidak ditemukan!');
+      }
 
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { status: AccountStatus.ACCEPTED },
+      return tx.user.update({
+        where: { id: userId },
+        data: { status },
+        select: {
+          id: true,
+          fullName: true,
+          role: true,
+          status: true, 
+        }
+      });
+      
     });
   }
 }

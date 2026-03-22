@@ -4,14 +4,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
-import { PrismaClient, Role } from '@prisma/client';
+import { AccountStatus, Prisma, Role } from '@prisma/client'; // Import Prisma untuk tipe data Transaction
 import * as bcrypt from 'bcrypt';
 
-export async function seedAdmin(prisma: PrismaClient, companyId: string, depotId: string) {
+/**
+ * Ganti parameter 'prisma: PrismaClient' menjadi 'tx: Prisma.TransactionClient'
+ */
+export async function seedAdmin(tx: Prisma.TransactionClient, companyId: string, depotId: string) {
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync('password123', salt);
     
-    const admin = await prisma.user.create({
+    // Gunakan 'tx' bukan 'prisma'
+    const admin = await tx.user.create({
         data: {
             username: 'admin_budi',
             password: hashedPassword, 
@@ -19,11 +23,12 @@ export async function seedAdmin(prisma: PrismaClient, companyId: string, depotId
             phoneNumber: '081234567890',
             birthDate: new Date('1990-01-01'),
             role: Role.ADMIN,
+            status: AccountStatus.ACCEPTED,
             companyId: companyId,
-            depotId: depotId
+            depotId: depotId,
         },
     });
 
     console.log(`✅ Admin berhasil ditambah: ${admin.username}`);
-    return admin; // Kembalikan objek admin
+    return admin; 
 }

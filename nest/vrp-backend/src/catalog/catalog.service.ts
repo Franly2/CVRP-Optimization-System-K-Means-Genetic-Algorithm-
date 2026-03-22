@@ -9,25 +9,27 @@ import { AddProductDto } from './dto/addProduct.dto';
 
 @Injectable()
 export class CatalogService {
- constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    async createProduct(companyId: string, data: AddProductDto) {
-      try {
-        const existingProduct = await this.prisma.product.findFirst({
+  async createProduct(companyId: string, data: AddProductDto) {
+    try {
+      return await this.prisma.withTenant(companyId, async (tx) => {
+        
+        const existingProduct = await tx.product.findFirst({
           where: {
             name: {
               equals: data.name,
               mode: 'insensitive',
             },
-            companyId: companyId,
+            // companyId: companyId, 
           },
         });
 
         if (existingProduct) {
-          throw new BadRequestException(`Produk dengan nama '${data.name}' sudah ada.`);
+          throw new BadRequestException(`Produk dengan nama '${data.name}' sudah ada di katalog Anda.`);
         }
 
-        const newProduct = await this.prisma.product.create({
+        const newProduct = await tx.product.create({
           data: {
             name: data.name,
             price: data.price,
@@ -44,15 +46,15 @@ export class CatalogService {
           message: 'Produk berhasil ditambahkan',
           data: newProduct,
         };
-      } catch (error) {
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
         
-        console.error('ERROR CREATE PRODUCT:', error);
-        throw new InternalServerErrorException('Gagal menambahkan produk.');
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
       }
+      
+      console.error('ERROR CREATE PRODUCT:', error);
+      throw new InternalServerErrorException('Gagal menambahkan produk.');
     }
-
-    
+  }
 }

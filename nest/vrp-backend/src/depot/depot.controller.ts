@@ -11,7 +11,8 @@ import { GetUser } from 'src/auth/get-user.decorator';
 export class DepotController {
   constructor(private readonly depotService: DepotService) {}
 
-   @Post('depot')
+    @UseGuards(JwtAuthGuard)
+    @Post('depot')
     async createDepot(
     @Body() dto: AddDepotDto,
     @GetUser('companyId') companyId: string, // Ambil ID Katering dari Token
