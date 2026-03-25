@@ -8,9 +8,14 @@ import { ActivityIndicator, Alert, Button, StyleSheet, TextInput, View } from 'r
 
 export default function HomeScreen() {
   const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
-  const API_URL = `http://${api_address}:3000/auth/login`;
-
   const router = useRouter();
+
+  const [slug, onChangeSlug] = React.useState('');
+  const [username, onChangeUsername] = React.useState('');
+  const [password, onChangePassword] = React.useState('');
+  
+  const [isLoading, setIsLoading] = React.useState(false); 
+  const [errorMessage, setErrorMessage] = React.useState('');
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -22,17 +27,16 @@ export default function HomeScreen() {
 
     checkLoginStatus();
   }, []);
-  const [username, onChangeUsername] = React.useState('');
-  const [password, onChangePassword] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false); 
-  const [errorMessage, setErrorMessage] = React.useState('');
+
   async function login() {
-    if (!username || !password) {
-      setErrorMessage('Username dan password tidak boleh kosong');
+    if (!slug || !username || !password) {
+      setErrorMessage('ID Katering, Username, dan Password tidak boleh kosong');
       return;
     }
 
     setIsLoading(true); 
+
+    const API_URL = `http://${api_address}:3000/auth/${slug}/login`;
 
     try {
       const response = await fetch(API_URL, {
@@ -60,7 +64,7 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error Jaringan', 'Gagal terhubung ke server. Pastikan IP laptop benar dan satu WiFi.');
+      Alert.alert('Error Jaringan', 'Gagal terhubung ke server.');// Pastikan HP dan Laptop dalam satu jaringan.
     } finally {
       setIsLoading(false); 
     }
@@ -77,6 +81,13 @@ export default function HomeScreen() {
       }>
        
       <View style={styles.formContainer}>
+        <TextInput
+          style={styles.input}
+          onChangeText={onChangeSlug}
+          value={slug}
+          placeholder='ID Katering (cth: katering-ibu-budi)'
+          autoCapitalize="none"
+        />
         <TextInput
           style={styles.input}
           onChangeText={onChangeUsername}
@@ -134,10 +145,10 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   errorText: {
-  color: '#FF3B30',
-  textAlign: 'center',
-  marginBottom: 15,
-  fontSize: 14,
-  fontWeight: 'bold',
-},
+    color: '#FF3B30',
+    textAlign: 'center',
+    marginBottom: 15,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });

@@ -10,7 +10,8 @@ import {
   IsDateString, 
   Min, 
   Length, 
-  IsEnum
+  IsEnum,
+  MinLength
 } from 'class-validator';
 
 export class addDriverDto {
@@ -18,6 +19,12 @@ export class addDriverDto {
   @IsNotEmpty()
   @Length(3, 20)
   username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6, { message: 'Password minimal 6 karakter' })
+  password: string;
+
 
   @IsString()
   @IsNotEmpty()
@@ -32,13 +39,12 @@ export class addDriverDto {
   @IsNotEmpty()
   birthDate: string; 
 
-  @IsUUID()
-  @IsNotEmpty()
-  companyId: string;
 
   @IsUUID()
   @IsNotEmpty()
   depotId: string; 
+
+
 
 
   // --- Data Kendaraan ---

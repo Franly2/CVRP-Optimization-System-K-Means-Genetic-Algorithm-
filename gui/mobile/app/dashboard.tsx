@@ -1,11 +1,12 @@
-import { AdminDashboard } from '@/components/adminDashboard';
-import { DriverDashboard } from '@/components/driverDashboard';
+import { AdminDashboard } from '@/components/dashboard/adminDashboard';
+import { DriverDashboard } from '@/components/dashboard/driverDashboard';
+import { OwnerDashboard } from '@/components/dashboard/ownerDashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -51,13 +52,36 @@ export default function DashboardScreen() {
     }
   };
 
+  const getHeaderTitle = () => {
+    switch (userRole) {
+      case 'OWNER': return 'Dashboard Owner';
+      case 'ADMIN': return 'Dashboard Admin';
+      case 'DRIVER': return 'Dashboard Kurir';
+      default: return 'Memuat...';
+    }
+  };
 
-return (
+  const renderDashboard = () => {
+    switch (userRole) {
+      case 'OWNER':
+        return <OwnerDashboard />;
+      case 'ADMIN':
+        return <AdminDashboard />;
+      case 'DRIVER':
+        return <DriverDashboard userName={userName} />;
+      case '':
+        return <ActivityIndicator size="large" color="#4991CC" style={{ marginTop: 20 }} />;
+      default:
+        return <ThemedText style={{ marginTop: 20, textAlign: 'center' }}>Role tidak dikenali.</ThemedText>;
+    }
+  };
+
+  return (
     <ThemedView style={styles.container}>
       <Stack.Screen 
         options={{
           headerShown: true, 
-          title: userRole === 'ADMIN' ? 'Dashboard Admin' : 'Dashboard Kurir', 
+          title: getHeaderTitle(),
           headerRight: () => (
             <TouchableOpacity onPress={handleLogout} style={{ marginRight: 20, paddingTop: 10 }}>
               <ThemedText style={{ color: '#FF3B30', fontWeight: 'bold' }}>Keluar</ThemedText>
@@ -78,11 +102,9 @@ return (
         </View>
       </View>
 
-      {userRole === 'ADMIN' ? (
-        <AdminDashboard />
-      ) : (
-        <DriverDashboard userName={userName} />
-      )}
+
+      {renderDashboard()}
+
     </ThemedView>
   );
 }
@@ -107,6 +129,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    marginBottom: 20, // Tambahan margin bawah agar tidak menempel dengan konten dashboard
   },
   profileCircle: {
     width: 60,

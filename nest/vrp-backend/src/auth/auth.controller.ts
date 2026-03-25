@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
@@ -12,7 +9,6 @@ import { LoginUserDto } from './dto/login.dto';
 import { GetUser } from './get-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PrismaService } from 'prisma/prisma.service';
-import { AddDepotDto } from 'src/depot/dto/addDepot.dto';
 
 
 @Controller('auth')

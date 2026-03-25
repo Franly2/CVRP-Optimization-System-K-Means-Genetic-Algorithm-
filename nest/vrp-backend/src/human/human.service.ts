@@ -62,8 +62,8 @@ export class HumanService {
     }
   }
 
-   async createDriver(dto: addDriverDto, role: string) {
-    return this.prisma.withTenant(dto.companyId, async (tx) => {
+   async createDriver(dto: addDriverDto, role: string, companyId: string) {
+    return this.prisma.withTenant(companyId, async (tx) => {
       
       const depot = await tx.depot.findUnique({
         where: { id: dto.depotId },
@@ -76,7 +76,6 @@ export class HumanService {
       const existingUser = await tx.user.findFirst({
         where: { 
           username: dto.username,
-          // companyId: dto.companyId // Opsional karena pake rls
         },
       });
 
@@ -85,7 +84,7 @@ export class HumanService {
       }
 
       const salt = await bcrypt.genSalt();
-      const hashedPassword = await bcrypt.hash('password123', salt);
+      const hashedPassword = await bcrypt.hash(dto.password, salt);
 
       const finalStatus = role === Role.OWNER 
         ? AccountStatus.ACCEPTED 
@@ -99,7 +98,7 @@ export class HumanService {
           phoneNumber: dto.phoneNumber,
           birthDate: new Date(dto.birthDate),
           role: Role.DRIVER,
-          companyId: dto.companyId,
+          companyId: companyId,
           depotId: dto.depotId,
           status: finalStatus,
 
@@ -110,7 +109,7 @@ export class HumanService {
               model: dto.vehicleModel,
               maxWeight: dto.maxWeight,
               maxVolume: dto.maxVolume,
-              companyId: dto.companyId
+              companyId: companyId
             },
           },
 
@@ -118,7 +117,7 @@ export class HumanService {
             create: {
               lat: depot.lat,
               lng: depot.lng,
-              companyId: dto.companyId
+              companyId: companyId
             },
           },
         },

@@ -10,22 +10,19 @@ import { Injectable } from '@nestjs/common';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      // Ngambil token dari header "Authorization: Bearer <token>"
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // SECRET KEY HARUS SAMA DENGAN YANG DI AUTH MODULE!
       secretOrKey: process.env.JWT_SECRET || 'default_secret_key', 
     });
   }
 
-  // Fungsi ini otomatis jalan kalau tokennya valid
   validate(payload: any) {
     // Apapun yang di-return di sini, akan masuk ke object 'req.user'
     return { 
       userId: payload.sub, 
       username: payload.username, 
       role: payload.role,
-      companyId: payload.companyId // <-- Ini yang paling penting buat SaaS!
+      companyId: payload.companyId 
     };
   }
 }

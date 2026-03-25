@@ -38,7 +38,7 @@ export class HumanController {
       throw new ForbiddenException('Akses ditolak! Hanya Owner atau Admin yang bisa menambah Driver Cabang/Depot.');
     }
 
-    return await this.humanService.createDriver(dto, role );
+    return await this.humanService.createDriver(dto, role,companyId );
     }
 
     @Post('accept-driver')
