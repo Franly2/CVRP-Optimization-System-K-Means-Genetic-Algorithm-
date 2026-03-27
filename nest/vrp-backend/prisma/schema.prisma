@@ -123,7 +123,7 @@ enum Role {
   OWNER
   ADMIN
   DRIVER
-  CUSTOMER // kasus : catering
+  CUSTOMER 
 }
 
 enum AccountStatus {
@@ -161,6 +161,14 @@ model User {
   @@unique([username, companyId]) // username "budi" hanya boleh ada 1 di dalam company yang sama
 }
 
+enum ProductStatus {
+  PENDING
+  REJECTED
+  AVAILABLE
+  UNAVAILABLE
+  DELETED
+}
+
 model Product {
   id             String          @id @default(uuid())
   name           String          // "Nasi Ayam" (Katering), "Paracetamol" (Farmasi)
@@ -177,11 +185,13 @@ model Product {
   schedules      ProductSchedule[]
   images         ProductImage[]
 
+  status          ProductStatus @default(PENDING)
   // Relasi ke keranjang belanja 
   items           OrderItem[]
   subscriptions   Subscription[]
   cartItems       CartItem[]
   availableShifts DeliveryShift[]
+  availableAt Depot[]
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -386,6 +396,7 @@ model Depot {
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
   
+  products Product[]
   users     User[]
   orders    Order[]   // list order yang berangkat dari depot ini (opsional, bisa juga diambil dari rute)
   packages  Package[] // biar Depot tahu paket apa saja yang berangkat dari sana

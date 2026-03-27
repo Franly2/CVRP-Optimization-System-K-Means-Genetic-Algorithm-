@@ -1,10 +1,6 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 import { BadRequestException, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
@@ -12,7 +8,6 @@ import { AddAdminDto } from './dto/addAdmin.dto';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { addDriverDto } from './dto/addDriver.dto';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AccountStatus, Role } from '@prisma/client';
 
 @Injectable()
@@ -172,4 +167,40 @@ export class HumanService {
       
     });
   }
+
+ async getStaffById(staffId: string, companyId: string) {
+  const result = await this.prisma.withTenant(companyId, async (tx) => {
+    const staff = await tx.user.findFirst({
+      where: {
+        id: staffId,
+        companyId: companyId,
+      },
+      include: {
+        depot: true,
+        vehicle: true,
+        driverLocation: true,
+        routes: {
+          orderBy: { date: 'desc' },
+        },
+        orders: {
+          orderBy: { createdAt: 'desc' },
+        },
+        subscriptions: true,
+        cartItems: true,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Data staf tidak ditemukan di perusahaan ini.');
+    }
+
+    const { password, ...staffWithoutPassword } = staff;
+    return staffWithoutPassword;
+  });
+
+  return {
+    message: 'Berhasil mengambil detail staf',
+    data: result,
+  };
+}
 }

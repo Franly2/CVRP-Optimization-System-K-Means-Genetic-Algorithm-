@@ -1,14 +1,15 @@
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '@/store/authStore';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ActivityIndicator, Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 
 export default function HomeScreen() {
   const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
   const router = useRouter();
+  const loginZustand = useAuthStore((state) => state.login);
 
   const [slug, onChangeSlug] = React.useState('');
   const [username, onChangeUsername] = React.useState('');
@@ -17,16 +18,16 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = React.useState(false); 
   const [errorMessage, setErrorMessage] = React.useState('');
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      const token = await AsyncStorage.getItem('userToken');
-      if (token) {
-        router.replace('/dashboard');
-      }
-    };
+  // useEffect(() => {
+  //   const checkLoginStatus = async () => {
+  //     const token = await AsyncStorage.getItem('userToken');
+  //     if (token) {
+  //       router.replace('/dashboard');
+  //     }
+  //   };
 
-    checkLoginStatus();
-  }, []);
+  //   checkLoginStatus();
+  // }, []);
 
   async function login() {
     if (!slug || !username || !password) {
@@ -53,12 +54,16 @@ export default function HomeScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        await AsyncStorage.setItem('userToken', data.access_token);
-        await AsyncStorage.setItem('userRole', data.role);
-        await AsyncStorage.setItem('userName', data.username);
+        // await AsyncStorage.setItem('userToken', data.access_token);
+        // await AsyncStorage.setItem('userRole', data.role);
+        // await AsyncStorage.setItem('userName', data.username);
 
+        // Alert.alert('Berhasil', `Halo ${data.username}, selamat datang!`);
+        // router.replace('/dashboard');
+        // 👇 Cukup panggil 1 baris ini, Zustand akan mengurus AsyncStorage dan Global State-nya!
+        await loginZustand(data.access_token, data.role, data.username);
         Alert.alert('Berhasil', `Halo ${data.username}, selamat datang!`);
-        router.replace('/dashboard');
+        // Note: router.replace('/dashboard') dihapus karena akan dieksekusi otomatis oleh Guard di _layout.tsx
       } else {
         setErrorMessage(data.message || 'Username atau password salah');
       }

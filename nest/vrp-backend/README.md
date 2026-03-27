@@ -16,7 +16,7 @@ npm run start:dev
 
 <!-- add new /src -->
 npx nest g resource catalog
-
+npm i --legacy-peer-deps
 
 
 

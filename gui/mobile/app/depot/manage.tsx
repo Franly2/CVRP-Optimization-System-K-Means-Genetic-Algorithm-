@@ -1,10 +1,10 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useAuthStore } from '../../store/authStore';
 
 interface Depot {
   id: string;
@@ -19,11 +19,14 @@ export default function ManageDepotScreen() {
   const router = useRouter();
   const [depots, setDepots] = useState<Depot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const token = useAuthStore((state) => state.token);
 
-  const fetchDepots = async () => {
+
+  const fetchDepots = useCallback (async () => {
     setIsLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('userToken'); 
+      if (!token) return;
+      try {
+
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
       
       const response = await fetch(`http://${api_address}:3000/depot`, {
@@ -47,7 +50,7 @@ export default function ManageDepotScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   useFocusEffect(
     useCallback(() => {

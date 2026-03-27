@@ -3,51 +3,28 @@ import { DriverDashboard } from '@/components/dashboard/driverDashboard';
 import { OwnerDashboard } from '@/components/dashboard/ownerDashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import React from 'react';
 import { ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useAuthStore } from '../store/authStore';
 
 export default function DashboardScreen() {
-  const router = useRouter();
-  const [userName, setUserName] = useState('');
-  const [userRole, setUserRole] = useState('');
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const name = await AsyncStorage.getItem('userName');
-        const role = await AsyncStorage.getItem('userRole');
-        
-        if (name && role) {
-          setUserName(name);
-          setUserRole(role);
-        } else {
-          router.replace('/');
-        }
-      } catch (e) {
-        console.error("Gagal load data user", e);
-      }
-    };
-
-    loadUserData();
-  }, []);
+  const { username: userName, role: userRole, logout } = useAuthStore();
 
   const handleLogout = async () => {
-    const logoutAction = async () => {
-      await AsyncStorage.clear();
-      router.replace('/');
+    const executeLogout = async () => {
+      await logout();
     };
 
     if (Platform.OS === 'web') {
       const confirmLogout = window.confirm("Apakah kamu yakin ingin keluar?");
       if (confirmLogout) {
-        logoutAction();
+        executeLogout();
       }
     } else {
       Alert.alert("Logout", "Apakah kamu yakin ingin keluar?", [
         { text: "Batal", style: "cancel" },
-        { text: "Ya, Keluar", onPress: logoutAction }
+        { text: "Ya, Keluar", onPress: executeLogout }
       ]);
     }
   };
@@ -68,11 +45,9 @@ export default function DashboardScreen() {
       case 'ADMIN':
         return <AdminDashboard />;
       case 'DRIVER':
-        return <DriverDashboard userName={userName} />;
-      case '':
-        return <ActivityIndicator size="large" color="#4991CC" style={{ marginTop: 20 }} />;
+        return <DriverDashboard userName={userName || 'Kurir'} />;
       default:
-        return <ThemedText style={{ marginTop: 20, textAlign: 'center' }}>Role tidak dikenali.</ThemedText>;
+        return <ActivityIndicator size="large" color="#4991CC" style={{ marginTop: 20 }} />;
     }
   };
 
@@ -97,11 +72,10 @@ export default function DashboardScreen() {
           </ThemedText>
         </View>
         <View>
-          <ThemedText type="subtitle">Hi, {userName}!</ThemedText>
-          <ThemedText style={styles.roleText}>{userRole}</ThemedText>
+          <ThemedText type="subtitle">Hi, {userName || 'User'}!</ThemedText>
+          <ThemedText style={styles.roleText}>{userRole || 'Loading...'}</ThemedText>
         </View>
       </View>
-
 
       {renderDashboard()}
 
@@ -129,7 +103,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    marginBottom: 20, // Tambahan margin bawah agar tidak menempel dengan konten dashboard
+    marginBottom: 20, 
   },
   profileCircle: {
     width: 60,

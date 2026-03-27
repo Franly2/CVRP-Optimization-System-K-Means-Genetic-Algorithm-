@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '@/store/authStore';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -12,6 +12,7 @@ export default function AddDepotScreen() {
   const [address, setAddress] = useState('');
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
+  const token = useAuthStore((state) => state.token);
   
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,7 +33,6 @@ export default function AddDepotScreen() {
     setIsLoading(true);
 
     try {
-      const token = await AsyncStorage.getItem('userToken');
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
 
       const response = await fetch(`http://${api_address}:3000/depot`, {

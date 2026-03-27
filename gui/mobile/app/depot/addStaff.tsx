@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '@/store/authStore';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -29,6 +29,9 @@ export default function AddStaffScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  const token = useAuthStore((state) => state.token);
+  
+
   const handleSubmit = async () => {
     if (!username || !password || !fullName || !phoneNumber || !birthDate || !depotId) {
       Alert.alert('Peringatan', 'Mohon lengkapi semua data staf!');
@@ -38,7 +41,6 @@ export default function AddStaffScreen() {
     setIsLoading(true);
 
     try {
-      const token = await AsyncStorage.getItem('userToken');
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
 
       let endpoint = '';

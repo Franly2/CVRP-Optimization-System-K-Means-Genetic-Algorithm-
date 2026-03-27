@@ -2,7 +2,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
-import { Body, Controller, ForbiddenException, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { HumanService } from './human.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AddAdminDto } from './dto/addAdmin.dto';
@@ -64,5 +64,18 @@ export class HumanController {
             throw new ForbiddenException('Akses ditolak! Hanya Owner yang bisa mengubah status karyawan.');
         }       
         return await this.humanService.changeStatusEmployee(companyId, dto.userId, dto.status);
+    }
+
+    @Get(':id')
+    async getStaffById(
+        @Param('id') staffId: string,
+        @GetUser('companyId') companyId: string,
+        @GetUser('role') role: string
+    ) {
+        if (role !== 'OWNER' && role !== 'ADMIN') {
+            throw new ForbiddenException('Akses ditolak! Hanya Owner dan Admin yang bisa melihat data staf.');
+        }
+
+        return await this.humanService.getStaffById(staffId, companyId);
     }
 }

@@ -1,16 +1,18 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuthStore } from '@/store/authStore';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native'; // Pastikan ini import yang benar jika pakai React Navigation Native
+import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-interface UserItem { id: string; fullName: string; role: string; username: string; }
+
+interface UserItem { id: string; fullName: string; role: string; username: string; status: string; }
 interface OrderItem { id: string; status: string; totalPrice: number; deliveryAddress: string; }
 interface PackageItem { id: string; recipientName: string; status: string; weight: number; volume: number; }
 interface RouteItem { id: string; status: string; date: string; }
+interface ProductItem { id: string; name: string; price: number; weightEst: number; volumeEst: number; isSubscription: boolean;status: string; }
 
 interface DepotDetail {
   id: string;
@@ -22,25 +24,25 @@ interface DepotDetail {
   orders: OrderItem[];
   packages: PackageItem[];
   routes: RouteItem[];
+  products: ProductItem[];
 }
 
 export default function DepotDetailScreen() {
   const { id } = useLocalSearchParams(); 
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
+
   
   const [depot, setDepot] = useState<DepotDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // State untuk Tab Navigasi
-  const [activeTab, setActiveTab] = useState<'INFO' | 'USERS' | 'ORDERS' | 'PACKAGES' | 'ROUTES'>('INFO');
-  
-  // State Baru: Untuk Filter Tipe Staf
+  const [activeTab, setActiveTab] = useState<'INFO' | 'USERS' | 'ORDERS' | 'PACKAGES' | 'ROUTES' | 'PRODUCTS'>('INFO');
   const [staffFilter, setStaffFilter] = useState<'ALL' | 'ADMIN' | 'DRIVER'>('ALL');
-
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACCEPTED' | 'PENDING' | 'SUSPENDED' | 'REJECTED'>('ALL');
+const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'REJECTED' | 'DELETED'>('ALL');
   const fetchDepotDetail = async () => {
     setIsLoading(true);
     try {
-      const token = await AsyncStorage.getItem('userToken');
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
       
       const response = await fetch(`http://${api_address}:3000/depot/${id}`, {
@@ -85,6 +87,16 @@ export default function DepotDetailScreen() {
     </TouchableOpacity>
   );
 
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'ACCEPTED': return { bg: '#E8F5E9', text: '#2E7D32' };
+      case 'PENDING': return { bg: '#FFF3E0', text: '#EF6C00' };
+      case 'REJECTED': return { bg: '#FFEBEE', text: '#C62828' };
+      case 'SUSPENDED': return { bg: '#F5F5F5', text: '#424242' };
+      default: return { bg: '#ECEFF1', text: '#455A64' };
+    }
+  };
+
   const handleAddStaff = () => {
     router.push({
       pathname: '/depot/addStaff', 
@@ -120,50 +132,171 @@ export default function DepotDetailScreen() {
         );
       
       case 'USERS':
+
+      
+        // 1. Filter Gabungan (Role + Status)
         const filteredUsers = depot.users.filter(u => {
-          if (staffFilter === 'ALL') return true;
-          return u.role === staffFilter;
+          const matchRole = staffFilter === 'ALL' || u.role === staffFilter;
+          const matchStatus = statusFilter === 'ALL' || u.status === statusFilter;
+          return matchRole && matchStatus;
+        });
+
+        const sortedUsers = filteredUsers.sort((a, b) => 
+          a.fullName.localeCompare(b.fullName)
+        );
+
+        return (
+          <View>
+            {/* --- Filter Bar 1: ROLE --- */}
+            <View style={styles.filterContainer}>
+              {['ALL', 'ADMIN', 'DRIVER'].map((role) => (
+                <TouchableOpacity 
+                  key={role}
+                  style={[styles.filterButton, staffFilter === role && styles.filterButtonActive]}
+                  onPress={() => setStaffFilter(role as any)}
+                >
+                  <ThemedText style={[styles.filterText, staffFilter === role && styles.filterTextActive]}>
+                    {role === 'ALL' ? 'Semua Role' : role}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* --- Filter Bar 2: STATUS (Horizontal Scroll) --- */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
+              {['ALL', 'ACCEPTED', 'PENDING', 'SUSPENDED', 'REJECTED'].map((status) => (
+                <TouchableOpacity 
+                  key={status}
+                  style={[styles.statusFilterOption, statusFilter === status && styles.statusFilterOptionActive]}
+                  onPress={() => setStatusFilter(status as any)}
+                >
+                  <View style={[styles.dot, { backgroundColor: getStatusStyle(status).text }]} />
+                  <ThemedText style={[styles.statusFilterText, statusFilter === status && styles.statusFilterTextActive]}>
+                    {status === 'ALL' ? 'Semua Status' : status}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {sortedUsers.length === 0 && (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={48} color="#ccc" />
+                <ThemedText style={styles.emptyText}>Tidak ada staf yang cocok dengan filter ini.</ThemedText>
+              </View>
+            )}
+
+            {/* render daftar */}
+            {sortedUsers.map((u) => {
+              const statusColors = getStatusStyle(u.status);
+              return (
+                <TouchableOpacity key={u.id} style={styles.listItem} onPress={() => router.push(`/human/${u.id}`)}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <ThemedText style={styles.itemTitle}>{u.fullName}</ThemedText>
+                      <View style={[styles.statusChip, { backgroundColor: statusColors.bg }]}>
+                        <ThemedText style={[styles.statusChipText, { color: statusColors.text }]}>
+                          {u.status}
+                        </ThemedText>
+                      </View>
+                    </View>
+                    <ThemedText style={styles.itemSub}>{u.role} - @{u.username}</ThemedText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#4991CC" />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        );
+      
+      case 'PRODUCTS':
+        const getProductStatusStyle = (status: string) => {
+          switch (status) {
+            case 'AVAILABLE': return { bg: '#E8F5E9', text: '#2E7D32', label: 'Tersedia' };
+            case 'PENDING': return { bg: '#FFF3E0', text: '#EF6C00', label: 'Pending' };
+            case 'UNAVAILABLE': return { bg: '#F5F5F5', text: '#616161', label: 'Kosong' };
+            case 'REJECTED': return { bg: '#FFEBEE', text: '#C62828', label: 'Ditolak' };
+            case 'DELETED': return { bg: '#37474F', text: '#FFFFFF', label: 'Dihapus' };
+            default: return { bg: '#ECEFF1', text: '#455A64', label: status };
+          }
+        };
+
+        // 1. Logika Filter Produk
+        const filteredProducts = depot.products.filter(p => {
+          return productStatusFilter === 'ALL' || p.status === productStatusFilter;
         });
 
         return (
           <View>
-            <View style={styles.filterContainer}>
-              <TouchableOpacity 
-                style={[styles.filterButton, staffFilter === 'ALL' && styles.filterButtonActive]}
-                onPress={() => setStaffFilter('ALL')}
-              >
-                <ThemedText style={[styles.filterText, staffFilter === 'ALL' && styles.filterTextActive]}>Semua</ThemedText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.filterButton, staffFilter === 'ADMIN' && styles.filterButtonActive]}
-                onPress={() => setStaffFilter('ADMIN')}
-              >
-                <ThemedText style={[styles.filterText, staffFilter === 'ADMIN' && styles.filterTextActive]}>Admin</ThemedText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.filterButton, staffFilter === 'DRIVER' && styles.filterButtonActive]}
-                onPress={() => setStaffFilter('DRIVER')}
-              >
-                <ThemedText style={[styles.filterText, staffFilter === 'DRIVER' && styles.filterTextActive]}>Driver</ThemedText>
-              </TouchableOpacity>
-            </View>
+            {/* --- Filter Bar: STATUS PRODUK (Horizontal Scroll) --- */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
+              {['ALL', 'AVAILABLE', 'UNAVAILABLE', 'PENDING', 'REJECTED', 'DELETED'].map((status) => (
+                <TouchableOpacity 
+                  key={status}
+                  style={[styles.statusFilterOption, productStatusFilter === status && styles.statusFilterOptionActive]}
+                  onPress={() => setProductStatusFilter(status as any)}
+                >
+                  <View style={[styles.dot, { backgroundColor: getProductStatusStyle(status).text }]} />
+                  <ThemedText style={[styles.statusFilterText, productStatusFilter === status && styles.statusFilterTextActive]}>
+                    {status === 'ALL' ? 'Semua Produk' : getProductStatusStyle(status).label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-            {filteredUsers.length === 0 && (
-              <ThemedText style={styles.emptyText}>Tidak ada staf dengan filter ini.</ThemedText>
+            {/* --- Tampilan jika kosong setelah difilter --- */}
+            {filteredProducts.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="fast-food-outline" size={48} color="#ccc" />
+                <ThemedText style={styles.emptyText}>
+                  {depot.products.length === 0 
+                    ? "Belum ada menu produk di depot ini." 
+                    : "Tidak ada produk yang cocok dengan filter."}
+                </ThemedText>
+              </View>
+            ) : (
+              /* --- Daftar Produk yang Lulus Filter --- */
+              <View style={styles.productGrid}>
+                {filteredProducts.map((p) => {
+                  const pStatus = getProductStatusStyle(p.status);
+                  return (
+                    <TouchableOpacity 
+                      key={p.id} 
+                      style={styles.productCard} 
+                      onPress={() => router.push(`/product/${p.id}`)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.productIconContainer}>
+                        <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color="#4991CC" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 5 }}>
+                          <ThemedText style={[styles.productName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{p.name}</ThemedText>
+                          
+                          {/* --- CHIP STATUS PRODUK --- */}
+                          <View style={[styles.statusChip, { backgroundColor: pStatus.bg }]}>
+                            <ThemedText style={[styles.statusChipText, { color: pStatus.text }]}>
+                              {pStatus.label}
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        <ThemedText style={styles.productPrice}>Rp {p.price.toLocaleString('id-ID')}</ThemedText>
+                        
+                        <View style={styles.productMeta}>
+                          <ThemedText style={styles.productMetaText}>{p.weightEst}kg | {p.volumeEst}L</ThemedText>
+                          {p.isSubscription && (
+                            <View style={styles.subBadge}>
+                              <ThemedText style={styles.subBadgeText}>Langganan</ThemedText>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#CCC" />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             )}
-
-            {/* 4. Render Daftar Hasil Filter */}
-            {filteredUsers.map((u) => (
-              <TouchableOpacity key={u.id} style={styles.listItem} onPress={() => Alert.alert('Detail', `Detail User: ${u.fullName}`)}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.itemTitle}>{u.fullName}</ThemedText>
-                  <ThemedText style={styles.itemSub}>{u.role} - @{u.username}</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#4991CC" />
-              </TouchableOpacity>
-            ))}
           </View>
         );
 
@@ -249,6 +382,7 @@ export default function DepotDetailScreen() {
               <TabButton title={`Order (${depot.orders.length})`} tabName="ORDERS" />
               <TabButton title={`Paket (${depot.packages.length})`} tabName="PACKAGES" />
               <TabButton title={`Rute (${depot.routes.length})`} tabName="ROUTES" />
+              <TabButton title={`Produk (${depot.products.length})`} tabName="PRODUCTS" />
             </ScrollView>
           </View>
 
@@ -299,4 +433,110 @@ const styles = StyleSheet.create({
   filterButtonActive: { backgroundColor: '#4991CC' },
   filterText: { color: '#4991CC', fontSize: 13, fontWeight: 'bold' },
   filterTextActive: { color: '#FFF' },
+  statusChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusChipText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  statusFilterScroll: {
+    marginBottom: 20,
+    flexDirection: 'row',
+  },
+  statusFilterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  statusFilterOptionActive: {
+    backgroundColor: '#4991CC',
+    borderColor: '#4991CC',
+  },
+  statusFilterText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  statusFilterTextActive: {
+    color: '#FFF',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+
+  // product
+  productGrid: {
+    gap: 12,
+  },
+  productCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  productIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 10,
+    backgroundColor: '#F0F7FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  productPrice: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  productMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+    gap: 8,
+  },
+  productMetaText: {
+    fontSize: 12,
+    color: '#888',
+  },
+  subBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  subBadgeText: {
+    fontSize: 10,
+    color: '#1976D2',
+    fontWeight: 'bold',
+  },
 });

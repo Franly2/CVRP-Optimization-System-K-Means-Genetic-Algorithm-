@@ -77,7 +77,8 @@ export class DepotService {
             users: true,      // Mengambil daftar admin/driver di depot ini
             orders: true,     // Mengambil daftar order dari depot ini
             packages: true,   // Mengambil daftar paket di depot ini
-            routes: true      // Mengambil daftar rute yang bermula dari depot ini
+            routes: true,      // Mengambil daftar rute yang bermula dari depot ini
+            products: true     // Mengambil daftar produk yang tersedia di depot ini
           }
         });
 

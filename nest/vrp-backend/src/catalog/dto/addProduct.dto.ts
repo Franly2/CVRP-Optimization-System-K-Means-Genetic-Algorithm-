@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { IsNotEmpty, IsString, IsNumber, IsBoolean, IsOptional, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsBoolean, IsOptional, Min, IsArray } from 'class-validator';
 
 export class AddProductDto {
   @IsString()
@@ -12,11 +12,15 @@ export class AddProductDto {
 
   @IsNumber()
   @Min(0)
-  weightEst: number; // Estimasi berat dalam gram/kg
+  weightEst: number; // kilogram
 
   @IsNumber()
   @Min(0)
-  volumeEst: number; // Estimasi volume dalam cm3/liter
+  volumeEst: number; // liter
+
+  @IsArray()
+  @IsString({ each: true }) // Memastikan setiap isi array adalah string (ID)
+  depotIds: string[];
 
   @IsBoolean()
   @IsOptional()
@@ -24,5 +28,5 @@ export class AddProductDto {
 
   @IsNumber()
   @IsOptional()
-  durationDays?: number; // Wajib diisi jika isSubscription true
+  durationDays?: number; // Wajib jika isSubscription true
 }
