@@ -43,16 +43,15 @@ export async function seedPackage(
       },
     });
 
-    // 2. Handshake (Update Order dengan ID Package)
     // RLS akan memastikan user hanya bisa update Order milik companyId yang sama
-    await tx.order.update({
-      where: { id: orderData.id },
-      data: { 
-        trackingId: pkg.id,
-        // Status diubah menjadi READY_FOR_DELIVERY karena paket sudah dibuat
-        status: 'READY_FOR_DELIVERY' 
-      },
-    });
+    // await tx.order.update({
+    //   where: { id: orderData.id },
+    //   data: { 
+    //     trackingId: pkg.id,
+    //     // Status diubah menjadi READY_FOR_DELIVERY karena paket sudah dibuat
+    //     status: 'READY_FOR_DELIVERY' 
+    //   },
+    // });
   }
 
   console.log(`✅ 50 Package Logistik berhasil dibuat dan resi terhubung!`);

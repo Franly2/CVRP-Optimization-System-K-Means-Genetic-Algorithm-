@@ -15,6 +15,11 @@ import { PrismaService } from 'prisma/prisma.service';
 export class AuthController {
   constructor(private readonly authService: AuthService, private readonly prisma: PrismaService) {}
 
+  @Get('branding/:slug') // PUBLIC 
+  async getPublicBranding(@Param('slug') slug: string) {
+    return await this.authService.getBrandingBySlug(slug);
+  }
+
   @Post('/register')
   async registerUser(@Body() data: RegisterUserDto) { 
     return this.authService.registerUser(data); 

@@ -1,14 +1,14 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme Store
+import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, ScrollView, StyleSheet,
-  Switch,
-  TextInput, TouchableOpacity, View
+    ActivityIndicator, Alert, ScrollView, StyleSheet,
+    Switch,
+    TextInput, TouchableOpacity, View
 } from 'react-native';
 
 interface DepotOption {
@@ -16,13 +16,12 @@ interface DepotOption {
   name: string;
 }
 
-export default function EditProductScreen() {
+export default function AddProductScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
-  const { colors } = useThemeStore(); // 2. Ambil warna tema
+  const { colors } = useThemeStore(); // 2. Ambil Warna
 
-  // Form State
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [weight, setWeight] = useState('');
@@ -30,7 +29,6 @@ export default function EditProductScreen() {
   const [isSub, setIsSub] = useState(false);
   const [duration, setDuration] = useState('');
   
-  // Depot Selection State
   const [allDepots, setAllDepots] = useState<DepotOption[]>([]);
   const [selectedDepots, setSelectedDepots] = useState<string[]>([]);
   
@@ -45,28 +43,29 @@ export default function EditProductScreen() {
 
   const fetchInitialData = async () => {
     try {
-      const [prodRes, depotRes] = await Promise.all([
-        fetch(`http://${api_address}:3000/catalog/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`http://${api_address}:3000/depot`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      const prodJson = await prodRes.json();
+      // Ambil data depot dulu (selalu dibutuhkan baik tambah maupun edit)
+      const depotRes = await fetch(`http://${api_address}:3000/depot`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const depotJson = await depotRes.json();
+      if (depotRes.ok) setAllDepots(depotJson.data);
 
-      if (prodRes.ok && depotRes.ok) {
-        const p = prodJson.data;
-        setName(p.name);
-        setPrice(p.price.toString());
-        setWeight(p.weightEst.toString());
-        setVolume(p.volumeEst.toString());
-        setIsSub(p.isSubscription);
-        setDuration(p.durationDays?.toString() || '');
-        setAllDepots(depotJson.data);
-        setSelectedDepots(p.availableAt.map((d: any) => d.id));
+      // Jika ID ada, berarti mode EDIT. Ambil data produk.
+      if (id) {
+        const prodRes = await fetch(`http://${api_address}:3000/catalog/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const prodJson = await prodRes.json();
+        if (prodRes.ok) {
+          const p = prodJson.data;
+          setName(p.name);
+          setPrice(p.price.toString());
+          setWeight(p.weightEst.toString());
+          setVolume(p.volumeEst.toString());
+          setIsSub(p.isSubscription);
+          setDuration(p.durationDays?.toString() || '');
+          setSelectedDepots(p.availableAt.map((d: any) => d.id));
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'Gagal memuat data');
@@ -83,7 +82,7 @@ export default function EditProductScreen() {
     }
   };
 
-  const handleUpdate = async () => {
+  const handleSave = async () => {
     if (!name || !price || selectedDepots.length === 0) {
       Alert.alert('Peringatan', 'Nama, Harga, dan minimal 1 Depot wajib diisi');
       return;
@@ -91,8 +90,15 @@ export default function EditProductScreen() {
 
     setIsSaving(true);
     try {
-      const response = await fetch(`http://${api_address}:3000/catalog/${id}`, {
-        method: 'PATCH',
+      // LOGIKA: Jika ada ID pakai PATCH (Update), jika tidak ada pakai POST (Create)
+      const url = id 
+        ? `http://${api_address}:3000/catalog/product/${id}` 
+        : `http://${api_address}:3000/catalog/product`;
+      
+      const method = id ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
@@ -100,8 +106,8 @@ export default function EditProductScreen() {
         body: JSON.stringify({
           name,
           price: Number(price),
-          weightEst: parseFloat(weight.toString().replace(',', '.')), // Fix desimal koma
-          volumeEst: parseFloat(volume.toString().replace(',', '.')), // Fix desimal koma
+          weightEst: parseFloat(weight.replace(',', '.')), // Fix input koma
+          volumeEst: parseFloat(volume.replace(',', '.')), // Fix input koma
           isSubscription: isSub,
           durationDays: isSub ? Number(duration) : null,
           depotIds: selectedDepots 
@@ -109,11 +115,11 @@ export default function EditProductScreen() {
       });
 
       if (response.ok) {
-        Alert.alert('Berhasil', 'Produk diperbarui');
+        Alert.alert('Berhasil', id ? 'Produk diperbarui' : 'Produk ditambahkan');
         router.back();
       } else {
         const err = await response.json();
-        Alert.alert('Gagal', err.message || 'Gagal update');
+        Alert.alert('Gagal', err.message || 'Terjadi kesalahan');
       }
     } catch (e) {
       Alert.alert('Error', 'Koneksi bermasalah');
@@ -122,20 +128,21 @@ export default function EditProductScreen() {
     }
   };
 
-  if (isLoading) return (
-    <View style={styles.center}>
-      <ActivityIndicator color={colors.primary} size="large" />
-    </View>
-  );
+  if (isLoading) return <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>;
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: 'Edit Produk', headerShown: true }} />
+      <Stack.Screen 
+              options={{
+                headerShown: true, 
+                title: "Tambah Produk Baru",
+              }} 
+            />
       <ScrollView contentContainerStyle={styles.scroll}>
         
         <View style={styles.section}>
           <ThemedText style={styles.label}>Nama Produk</ThemedText>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Contoh: Nasi Box A" />
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="" />
 
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
@@ -161,12 +168,7 @@ export default function EditProductScreen() {
             <ThemedText style={styles.bold}>Produk Langganan?</ThemedText>
             <ThemedText style={styles.hint}>Aktifkan jika ini paket bulanan/mingguan</ThemedText>
           </View>
-          <Switch 
-            value={isSub} 
-            onValueChange={setIsSub} 
-            trackColor={{ true: colors.primary, false: '#ccc' }} 
-            thumbColor={isSub ? colors.secondary : '#f4f3f4'}
-          />
+          <Switch value={isSub} onValueChange={setIsSub} trackColor={{ true: colors.primary }} />
         </View>
 
         {isSub && (
@@ -180,26 +182,22 @@ export default function EditProductScreen() {
           <ThemedText style={styles.label}>Tersedia di Depot Mana Saja?</ThemedText>
           <View style={styles.depotGrid}>
             {allDepots.map((d) => {
-              const isSelected = selectedDepots.includes(d.id);
+              const isActive = selectedDepots.includes(d.id);
               return (
                 <TouchableOpacity 
                   key={d.id} 
                   style={[
                     styles.depotChip, 
                     { borderColor: colors.primary },
-                    isSelected && { backgroundColor: colors.primary }
+                    isActive && { backgroundColor: colors.primary }
                   ]}
                   onPress={() => toggleDepot(d.id)}
                 >
                   <Ionicons 
-                    name={isSelected ? "checkbox" : "square-outline"} 
-                    size={18} 
-                    color={isSelected ? "#FFF" : colors.primary} 
+                    name={isActive ? "checkbox" : "square-outline"} 
+                    size={18} color={isActive ? "#FFF" : colors.primary} 
                   />
-                  <ThemedText style={[
-                    styles.chipText, 
-                    { color: isSelected ? "#FFF" : colors.primary }
-                  ]}>
+                  <ThemedText style={[styles.chipText, { color: isActive ? "#FFF" : colors.primary }]}>
                     {d.name}
                   </ThemedText>
                 </TouchableOpacity>
@@ -210,14 +208,10 @@ export default function EditProductScreen() {
 
         <TouchableOpacity 
           style={[styles.saveButton, { backgroundColor: colors.primary }, isSaving && { opacity: 0.7 }]} 
-          onPress={handleUpdate}
+          onPress={handleSave}
           disabled={isSaving}
         >
-          {isSaving ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <ThemedText style={styles.saveText}>Simpan Perubahan</ThemedText>
-          )}
+          {isSaving ? <ActivityIndicator color="#FFF" /> : <ThemedText style={styles.saveText}>Simpan Perubahan</ThemedText>}
         </TouchableOpacity>
 
       </ScrollView>
@@ -227,7 +221,7 @@ export default function EditProductScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center' },
   scroll: { padding: 20 },
   section: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: '#EEE' },
   row: { flexDirection: 'row', gap: 15 },

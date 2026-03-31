@@ -1,80 +1,120 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-// 1. IMPORT THEME STORE
-import { useThemeStore } from '@/store/themeStore'; // Sesuaikan path jika berbeda
-import { Stack, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useThemeStore } from '@/store/themeStore';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function AddDepotScreen() {
+export default function EditDepotScreen() {
   const router = useRouter();
-
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [lat, setLat] = useState('');
-  const [lng, setLng] = useState('');
+  const { id, name: initialName, address: initialAddress, lat: initialLat, lng: initialLng } = useLocalSearchParams();
   const token = useAuthStore((state) => state.token);
-  
-  // 2. AMBIL WARNA DARI TEMA
   const { colors } = useThemeStore();
+
+  const [name, setName] = useState(initialName?.toString() || '');
+  const [address, setAddress] = useState(initialAddress?.toString() || '');
+  const [lat, setLat] = useState(initialLat?.toString() || '');
+  const [lng, setLng] = useState(initialLng?.toString() || '');
   
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Loading saat fetch data awal
+  const [isUpdating, setIsUpdating] = useState(false); // Loading saat proses simpan
 
-  const handleSubmit = async () => {
-    if (!name || !address || !lat || !lng) {
-      Alert.alert('Peringatan', 'Semua kolom wajib diisi!');
-      return;
-    }
+  const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
 
-    const latitude = parseFloat(lat.replace(',', '.'));
-    const longitude = parseFloat(lng.replace(',', '.'));
+  useEffect(() => {
+    const fetchDepotDetail = async () => {
+      try {
+        const response = await fetch(`http://${api_address}:3000/depot/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const result = await response.json();
 
-    if (isNaN(latitude) || isNaN(longitude)) {
-      Alert.alert('Peringatan', 'Latitude dan Longitude harus berupa angka yang valid!');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
-
-      const response = await fetch(`http://${api_address}:3000/depot`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: name,
-          address: address,
-          lat: latitude,
-          lng: longitude,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        Alert.alert('Berhasil', 'Depot baru berhasil ditambahkan!');
-        router.back();
-      } else {
-        Alert.alert('Gagal', result.message || 'Terjadi kesalahan saat menyimpan data.');
+        if (response.ok) {
+          setName(result.data.name);
+          setAddress(result.data.address);
+          setLat(result.data.lat.toString());
+          setLng(result.data.lng.toString());
+        } else {
+          Alert.alert('Error', 'Gagal mengambil data depot');
+        }
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'Koneksi ke server bermasalah');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error Jaringan', 'Gagal terhubung ke server.');
-    } finally {
-      setIsLoading(false);
+    };
+
+    if (id) fetchDepotDetail();
+  }, [id]);
+
+  const handleUpdate = async () => {
+  if (!name || !address || !lat || !lng) {
+    Alert.alert('Peringatan', 'Semua kolom wajib diisi!');
+    return;
+  }
+
+  // Bersihkan input dan pastikan tipe Number
+  const latNum = Number(lat.toString().replace(',', '.'));
+  const lngNum = Number(lng.toString().replace(',', '.'));
+
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    Alert.alert('Peringatan', 'Latitude/Longitude tidak valid');
+    return;
+  }
+
+  setIsUpdating(true);
+  const API_URL = `http://${api_address}:3000/depot/${id}`;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        address: address.trim(),
+        lat: latNum,
+        lng: lngNum,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      Alert.alert('Berhasil', 'Data depot berhasil diperbarui!');
+      router.back();
+    } else {
+      console.log("Server Error Response:", result); // Lihat di console vscode
+      Alert.alert('Gagal', result.message || 'Terjadi kesalahan server.');
     }
-  };
+  } catch (error) {
+    console.error("Network Error:", error);
+    Alert.alert('Error Jaringan', 'Gagal terhubung ke server.');
+  } finally {
+    setIsUpdating(false);
+  }
+};
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <ThemedText style={{ marginTop: 10 }}>Memuat data depot...</ThemedText>
+      </View>
+    );
+  }
 
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen 
         options={{
-          title: 'Tambah Depot Baru',
+          title: 'Edit Depot',
           headerShown: true,
         }} 
       />
@@ -127,14 +167,14 @@ export default function AddDepotScreen() {
           </View>
 
           <View style={styles.buttonContainer}>
-            {isLoading ? (
+            {isUpdating ? (
               <ActivityIndicator size="large" color={colors.primary} />
             ) : (
               <TouchableOpacity 
                 style={[styles.submitButton, { backgroundColor: colors.primary }]} 
-                onPress={handleSubmit}
+                onPress={handleUpdate}
               >
-                <ThemedText style={styles.submitButtonText}>Simpan Depot</ThemedText>
+                <ThemedText style={styles.submitButtonText}>Simpan Perubahan</ThemedText>
               </TouchableOpacity>
             )}
           </View>
@@ -146,6 +186,7 @@ export default function AddDepotScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F7FA' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContainer: { padding: 20 },
   card: {
     backgroundColor: '#FFFFFF',
@@ -173,7 +214,6 @@ const styles = StyleSheet.create({
   halfInput: { flex: 1 },
   buttonContainer: { marginTop: 30, alignItems: 'center' },
   submitButton: {
-    // backgroundColor: '#4991CC', <--- Dihapus dari sini karena sudah dipindah ke elemen
     width: '100%',
     paddingVertical: 15,
     borderRadius: 10,

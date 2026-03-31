@@ -1,58 +1,49 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { InternalServerErrorException } from '@nestjs/common';
-import { AddProductDto } from '../catalog/dto/addProduct.dto';
 
 @Injectable()
 export class TenantService {
     constructor(private readonly prisma: PrismaService) {}
 
-    async createProduct(companyId: string, data: AddProductDto) {
-      try {
-        const existingProduct = await this.prisma.product.findFirst({
-          where: {
-            name: {
-              equals: data.name,
-              mode: 'insensitive',
-            },
-            companyId: companyId,
+    async getTenant(companyId: string) {
+    try {
+      return await this.prisma.withTenant(companyId, async (tx) => {
+        
+        const company = await tx.company.findUnique({
+          where: { id: companyId },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            colorPrimary: true,
+            colorSecondary: true,
+            colorTertiary: true,
+            tier: true,
           },
         });
 
-        if (existingProduct) {
-          throw new BadRequestException(`Produk dengan nama '${data.name}' sudah ada.`);
+        if (!company) {
+          throw new NotFoundException('Data branding tenant tidak ditemukan.');
         }
-
-        const newProduct = await this.prisma.product.create({
-          data: {
-            name: data.name,
-            price: data.price,
-            weightEst: data.weightEst,
-            volumeEst: data.volumeEst,
-            isSubscription: data.isSubscription ?? false,
-            durationDays: data.durationDays,
-            companyId: companyId, 
-          },
-        });
 
         return {
           status: 'success',
-          message: 'Produk berhasil ditambahkan',
-          data: newProduct,
+          message: 'Data branding berhasil dimuat melalui tenant context',
+          data: company,
         };
-      } catch (error) {
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
-        
-        console.error('ERROR CREATE PRODUCT:', error);
-        throw new InternalServerErrorException('Gagal menambahkan produk.');
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
       }
+      
+      throw new InternalServerErrorException('Gagal mengambil data perusahaan.');
     }
+  }
 }

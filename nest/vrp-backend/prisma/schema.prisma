@@ -217,8 +217,8 @@ enum OrderStatus {
   UNPAID
   PAID
   PREPARING
-  READY_FOR_DELIVERY
   COMPLETED
+  FAILED
 }
 
 model Order {
@@ -357,6 +357,7 @@ model Company {
   logoUrl         String?
   colorPrimary    String? @default("#1976D2")
   colorSecondary  String? @default("#FFC107")
+  colorTertiary   String? @default("#4CAF50")
 
   // --- SaaS Limits & Tiering ---
   tier            PlanTier @default(STARTER)

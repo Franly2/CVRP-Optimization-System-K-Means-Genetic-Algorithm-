@@ -102,4 +102,48 @@ export class DepotService {
       throw new InternalServerErrorException('Terjadi kesalahan saat mengambil detail depot.');
     }
   }
+
+  // Di dalam class DepotService
+
+  async updateDepot(companyId: string, id: string, dto: AddDepotDto) {
+  try {
+    return await this.prisma.withTenant(companyId, async (tx) => {
+      
+      // 1. Cari depot dan pastikan milik companyId yang benar di dalam tenant context
+      const depot = await tx.depot.findFirst({
+        where: {
+          id: id,
+          companyId: companyId,
+        },
+      });
+
+      if (!depot) {
+        throw new NotFoundException(`Depot dengan ID ${id} tidak ditemukan di perusahaan Anda.`);
+      }
+
+      // 2. Lakukan update
+      const updatedDepot = await tx.depot.update({
+        where: { id: id },
+        data: {
+          name: dto.name,
+          address: dto.address,
+          lat: dto.lat,
+          lng: dto.lng,
+        },
+      });
+
+      return {
+        status: 'success',
+        message: 'Data depot berhasil diperbarui',
+        data: updatedDepot,
+      };
+    });
+  } catch (error) {
+    if (error instanceof NotFoundException) {
+      throw error;
+    }
+    console.error('ERROR UPDATE DEPOT:', error);
+    throw new InternalServerErrorException('Terjadi kesalahan saat memperbarui data depot.');
+  }
+}
 }

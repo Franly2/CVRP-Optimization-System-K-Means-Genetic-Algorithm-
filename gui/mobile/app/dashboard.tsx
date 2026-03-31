@@ -5,11 +5,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Stack } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore'; // Pastikan path ini sesuai dengan letak file kamu
 
 export default function DashboardScreen() {
   const { username: userName, role: userRole, logout } = useAuthStore();
+  const { colors, logoUrl } = useThemeStore();
 
   const handleLogout = async () => {
     const executeLogout = async () => {
@@ -47,7 +49,8 @@ export default function DashboardScreen() {
       case 'DRIVER':
         return <DriverDashboard userName={userName || 'Kurir'} />;
       default:
-        return <ActivityIndicator size="large" color="#4991CC" style={{ marginTop: 20 }} />;
+        // Loading indicator sekarang warnanya dinamis sesuai tema perusahaan
+        return <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />;
     }
   };
 
@@ -64,15 +67,27 @@ export default function DashboardScreen() {
           ),
         }} 
       />
-
-      <View style={styles.card}>
+      {/* Background warna di sini langsung memakai warna Primary dari Zustand */}
+      <View style={[styles.card, { backgroundColor: colors.primary }]}>
         <View style={styles.profileCircle}>
-          <ThemedText style={styles.initials}>
-            {userName ? userName.substring(0, 2).toUpperCase() : '??'}
-          </ThemedText>
+          {logoUrl ? (
+            <Image 
+              key={logoUrl} // 1. Ini memaksa React merender ulang jika URL berubah
+              source={{ uri: logoUrl.trim() }} // 2. Membersihkan karakter spasi tak terlihat
+              style={styles.logoImage} 
+              resizeMode="cover"
+              // 3. Jika gambar gagal dimuat (broken link), kita biarkan kosong agar tidak crash
+              onError={(e) => console.log('Gagal memuat gambar logo', e.nativeEvent.error)}
+            />
+          ) : (
+            <ThemedText style={styles.initials}>
+              {userName ? userName.substring(0, 2).toUpperCase() : '??'}
+            </ThemedText>
+          )}
+
         </View>
         <View>
-          <ThemedText type="subtitle">Hi, {userName || 'User'}!</ThemedText>
+          <ThemedText type="subtitle" style={{ color: '#fff' }}>Hai, {userName || 'User'}!</ThemedText>
           <ThemedText style={styles.roleText}>{userRole || 'Loading...'}</ThemedText>
         </View>
       </View>
@@ -84,7 +99,12 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 },
+  container: { 
+    flex: 1, 
+    padding: 20, 
+    paddingTop: 60, 
+    backgroundColor: '#F5F7FA'
+  },
   header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
@@ -92,7 +112,6 @@ const styles = StyleSheet.create({
     marginBottom: 30 
   },
   card: {
-    backgroundColor: '#4991CC',
     padding: 20,
     borderRadius: 15,
     flexDirection: 'row',
@@ -111,12 +130,31 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    overflow: 'hidden', // Sangat penting agar gambar logo yang kotak bisa terpotong melingkar
   },
-  initials: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  roleText: { color: '#E0E0E0', fontSize: 14 },
-  menuTitle: { marginTop: 30, marginBottom: 15 },
-  menuGrid: { flexDirection: 'row', gap: 15 },
+  logoImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  initials: { 
+    color: '#fff', 
+    fontSize: 20, 
+    fontWeight: 'bold' 
+  },
+  roleText: { 
+    color: '#E0E0E0', 
+    fontSize: 14 
+  },
+  menuTitle: { 
+    marginTop: 30, 
+    marginBottom: 15 
+  },
+  menuGrid: { 
+    flexDirection: 'row', 
+    gap: 15 
+  },
   menuItem: {
     flex: 1,
     backgroundColor: '#F0F0F0',

@@ -1,26 +1,25 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme Store
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function AddStaffScreen() {
   const router = useRouter();
-  // Menangkap depotId yang dilempar dari layar Detail Depot
   const { depotId } = useLocalSearchParams(); 
 
-  // State untuk jenis staf
-  const [role, setRole] = useState<'ADMIN' | 'DRIVER'>('ADMIN');
+  // Ambil warna dinamis
+  const { colors } = useThemeStore();
 
-  // State Umum (Admin & Driver)
+  const [role, setRole] = useState<'ADMIN' | 'DRIVER'>('ADMIN');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [birthDate, setBirthDate] = useState(''); // Format YYYY-MM-DD
+  const [birthDate, setBirthDate] = useState(''); 
 
-  // State Khusus Driver
   const [vehicleType, setVehicleType] = useState<'MOTOR' | 'MOBIL'>('MOTOR');
   const [plateNumber, setPlateNumber] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
@@ -28,9 +27,7 @@ export default function AddStaffScreen() {
   const [maxVolume, setMaxVolume] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-
   const token = useAuthStore((state) => state.token);
-  
 
   const handleSubmit = async () => {
     if (!username || !password || !fullName || !phoneNumber || !birthDate || !depotId) {
@@ -39,41 +36,24 @@ export default function AddStaffScreen() {
     }
 
     setIsLoading(true);
-
     try {
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
-
       let endpoint = '';
       let payload: any = {};
 
       if (role === 'ADMIN') {
         endpoint = `http://${api_address}:3000/human/admin`;
-        payload = {
-          username,
-          password,
-          fullName,
-          depotId,
-          phoneNumber,
-          birthDate,
-        };
+        payload = { username, password, fullName, depotId, phoneNumber, birthDate };
       } else {
         if (!plateNumber || !vehicleModel || !maxWeight || !maxVolume) {
           Alert.alert('Peringatan', 'Data kendaraan wajib diisi untuk Driver!');
           setIsLoading(false);
           return;
         }
-
         endpoint = `http://${api_address}:3000/human/driver`;
         payload = {
-          username,
-          password, 
-          fullName,
-          phoneNumber,
-          birthDate,
-          depotId,
-          vehicleType,
-          plateNumber,
-          vehicleModel,
+          username, password, fullName, phoneNumber, birthDate, depotId,
+          vehicleType, plateNumber, vehicleModel,
           maxWeight: parseFloat(maxWeight.replace(',', '.')),
           maxVolume: parseFloat(maxVolume.replace(',', '.')),
         };
@@ -89,10 +69,9 @@ export default function AddStaffScreen() {
       });
 
       const result = await response.json();
-
       if (response.ok) {
         Alert.alert('Berhasil', `Staf ${role} baru berhasil ditambahkan!`);
-        router.back(); // Otomatis kembali ke layar Detail Depot
+        router.back();
       } else {
         Alert.alert('Gagal', result.message || `Gagal mendaftarkan ${role}.`);
       }
@@ -106,20 +85,20 @@ export default function AddStaffScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: 'Tambah Staf Baru', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Tambah Staf Baru', headerShown: true, }} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Toggle Pilihan Role */}
+        {/* Toggle Pilihan Role (Warna Dinamis) */}
         <View style={styles.roleToggleContainer}>
           <TouchableOpacity 
-            style={[styles.roleButton, role === 'ADMIN' && styles.roleButtonActive]}
+            style={[styles.roleButton, role === 'ADMIN' && { backgroundColor: colors.primary }]}
             onPress={() => setRole('ADMIN')}
           >
             <ThemedText style={[styles.roleText, role === 'ADMIN' && styles.roleTextActive]}>Admin Cabang</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.roleButton, role === 'DRIVER' && styles.roleButtonActive]}
+            style={[styles.roleButton, role === 'DRIVER' && { backgroundColor: colors.primary }]}
             onPress={() => setRole('DRIVER')}
           >
             <ThemedText style={[styles.roleText, role === 'DRIVER' && styles.roleTextActive]}>Kurir / Driver</ThemedText>
@@ -158,13 +137,13 @@ export default function AddStaffScreen() {
               <ThemedText style={styles.label}>Jenis Kendaraan</ThemedText>
               <View style={styles.roleToggleContainer}>
                 <TouchableOpacity 
-                  style={[styles.roleButton, vehicleType === 'MOTOR' && styles.roleButtonActive]}
+                  style={[styles.roleButton, vehicleType === 'MOTOR' && { backgroundColor: colors.primary }]}
                   onPress={() => setVehicleType('MOTOR')}
                 >
                   <ThemedText style={[styles.roleText, vehicleType === 'MOTOR' && styles.roleTextActive]}>Motor</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.roleButton, vehicleType === 'MOBIL' && styles.roleButtonActive]}
+                  style={[styles.roleButton, vehicleType === 'MOBIL' && { backgroundColor: colors.primary }]}
                   onPress={() => setVehicleType('MOBIL')}
                 >
                   <ThemedText style={[styles.roleText, vehicleType === 'MOBIL' && styles.roleTextActive]}>Mobil</ThemedText>
@@ -197,15 +176,17 @@ export default function AddStaffScreen() {
 
           <View style={styles.buttonContainer}>
             {isLoading ? (
-              <ActivityIndicator size="large" color="#4991CC" />
+              <ActivityIndicator size="large" color={colors.primary} />
             ) : (
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <TouchableOpacity 
+                style={[styles.submitButton, { backgroundColor: colors.primary }]} 
+                onPress={handleSubmit}
+              >
                 <ThemedText style={styles.submitButtonText}>Simpan {role === 'ADMIN' ? 'Admin' : 'Kurir'}</ThemedText>
               </TouchableOpacity>
             )}
           </View>
         </View>
-
       </ScrollView>
     </ThemedView>
   );
@@ -216,7 +197,7 @@ const styles = StyleSheet.create({
   scrollContainer: { padding: 20, paddingBottom: 40 },
   roleToggleContainer: { flexDirection: 'row', backgroundColor: '#E0E0E0', borderRadius: 10, padding: 4, marginBottom: 20 },
   roleButton: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
-  roleButtonActive: { backgroundColor: '#4991CC', elevation: 2 },
+  // roleButtonActive dihapus karena warnanya dinamis di elemen
   roleText: { color: '#666', fontWeight: 'bold' },
   roleTextActive: { color: '#FFF' },
   card: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
@@ -228,6 +209,6 @@ const styles = StyleSheet.create({
   driverSection: { marginTop: 10 },
   divider: { height: 1, backgroundColor: '#EEE', marginVertical: 20 },
   buttonContainer: { marginTop: 30, alignItems: 'center' },
-  submitButton: { backgroundColor: '#4991CC', width: '100%', paddingVertical: 15, borderRadius: 10, alignItems: 'center' },
+  submitButton: { width: '100%', paddingVertical: 15, borderRadius: 10, alignItems: 'center' },
   submitButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 });

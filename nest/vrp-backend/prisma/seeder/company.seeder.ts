@@ -27,7 +27,9 @@ export async function seedCompany(tx: Prisma.TransactionClient) {
       industry: 'F&B',
       tier: PlanTier.STARTER,
       logoUrl: 'https://dummyimage.com/200x200/e65100/ffffff.png&text=Ibu+Budi',
-      colorPrimary: '#E65100',
+      // colorPrimary: '#E65100',
+      // colorSecondary: '#FF5722',
+      // colorTertiary: '#FFCCBC',
     },
   });
 

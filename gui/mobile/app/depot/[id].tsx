@@ -1,12 +1,13 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
+// 1. IMPORT THEME STORE
+import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-
 
 interface UserItem { id: string; fullName: string; role: string; username: string; status: string; }
 interface OrderItem { id: string; status: string; totalPrice: number; deliveryAddress: string; }
@@ -28,18 +29,22 @@ interface DepotDetail {
 }
 
 export default function DepotDetailScreen() {
+  const { username: userName, role: userRole, logout } = useAuthStore();
   const { id } = useLocalSearchParams(); 
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
-
   
+  // 2. PANGGIL WARNA DINAMIS
+  const { colors } = useThemeStore();
+
   const [depot, setDepot] = useState<DepotDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState<'INFO' | 'USERS' | 'ORDERS' | 'PACKAGES' | 'ROUTES' | 'PRODUCTS'>('INFO');
   const [staffFilter, setStaffFilter] = useState<'ALL' | 'ADMIN' | 'DRIVER'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACCEPTED' | 'PENDING' | 'SUSPENDED' | 'REJECTED'>('ALL');
-const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'REJECTED' | 'DELETED'>('ALL');
+  const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'REJECTED' | 'DELETED'>('ALL');
+  
   const fetchDepotDetail = async () => {
     setIsLoading(true);
     try {
@@ -78,7 +83,10 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
 
   const TabButton = ({ title, tabName }: { title: string, tabName: any }) => (
     <TouchableOpacity 
-      style={[styles.tabButton, activeTab === tabName && styles.tabButtonActive]}
+      style={[
+        styles.tabButton, 
+        activeTab === tabName && { backgroundColor: colors.primary } // Dinamis
+      ]}
       onPress={() => setActiveTab(tabName)}
     >
       <ThemedText style={[styles.tabText, activeTab === tabName && styles.tabTextActive]}>
@@ -102,6 +110,27 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
       pathname: '/depot/addStaff', 
       params: { depotId: id } 
     });
+  };
+
+  const handleAddProduct = () => {
+    router.push({
+      pathname: '/product/add-product',
+      params: { depotId: id }
+    });
+  };
+
+  const handleEditDepot = () => {
+  if (!depot) return;
+  router.push({
+    pathname: '/depot/edit-depot',
+    params: { 
+      id: id,
+      name: depot.name,
+      address: depot.address,
+      lat: depot.lat,
+      lng: depot.lng
+    }
+  });
   };
 
   const renderContent = () => {
@@ -132,9 +161,6 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
         );
       
       case 'USERS':
-
-      
-        // 1. Filter Gabungan (Role + Status)
         const filteredUsers = depot.users.filter(u => {
           const matchRole = staffFilter === 'ALL' || u.role === staffFilter;
           const matchStatus = statusFilter === 'ALL' || u.status === statusFilter;
@@ -147,27 +173,35 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
 
         return (
           <View>
-            {/* --- Filter Bar 1: ROLE --- */}
             <View style={styles.filterContainer}>
               {['ALL', 'ADMIN', 'DRIVER'].map((role) => (
                 <TouchableOpacity 
                   key={role}
-                  style={[styles.filterButton, staffFilter === role && styles.filterButtonActive]}
+                  style={[
+                    styles.filterButton, 
+                    { borderColor: colors.primary }, // Border dinamis
+                    staffFilter === role && { backgroundColor: colors.primary } // Bg dinamis
+                  ]}
                   onPress={() => setStaffFilter(role as any)}
                 >
-                  <ThemedText style={[styles.filterText, staffFilter === role && styles.filterTextActive]}>
+                  <ThemedText style={[
+                    { color: colors.primary, fontSize: 13, fontWeight: 'bold' }, // Teks dinamis
+                    staffFilter === role && styles.filterTextActive
+                  ]}>
                     {role === 'ALL' ? 'Semua Role' : role}
                   </ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* --- Filter Bar 2: STATUS (Horizontal Scroll) --- */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
               {['ALL', 'ACCEPTED', 'PENDING', 'SUSPENDED', 'REJECTED'].map((status) => (
                 <TouchableOpacity 
                   key={status}
-                  style={[styles.statusFilterOption, statusFilter === status && styles.statusFilterOptionActive]}
+                  style={[
+                    styles.statusFilterOption, 
+                    statusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } // Dinamis
+                  ]}
                   onPress={() => setStatusFilter(status as any)}
                 >
                   <View style={[styles.dot, { backgroundColor: getStatusStyle(status).text }]} />
@@ -185,7 +219,6 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
               </View>
             )}
 
-            {/* render daftar */}
             {sortedUsers.map((u) => {
               const statusColors = getStatusStyle(u.status);
               return (
@@ -201,7 +234,7 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
                     </View>
                     <ThemedText style={styles.itemSub}>{u.role} - @{u.username}</ThemedText>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#4991CC" />
+                  <Ionicons name="chevron-forward" size={20} color={colors.primary} />
                 </TouchableOpacity>
               );
             })}
@@ -220,19 +253,20 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
           }
         };
 
-        // 1. Logika Filter Produk
         const filteredProducts = depot.products.filter(p => {
           return productStatusFilter === 'ALL' || p.status === productStatusFilter;
         });
 
         return (
           <View>
-            {/* --- Filter Bar: STATUS PRODUK (Horizontal Scroll) --- */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
               {['ALL', 'AVAILABLE', 'UNAVAILABLE', 'PENDING', 'REJECTED', 'DELETED'].map((status) => (
                 <TouchableOpacity 
                   key={status}
-                  style={[styles.statusFilterOption, productStatusFilter === status && styles.statusFilterOptionActive]}
+                  style={[
+                    styles.statusFilterOption, 
+                    productStatusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } // Dinamis
+                  ]}
                   onPress={() => setProductStatusFilter(status as any)}
                 >
                   <View style={[styles.dot, { backgroundColor: getProductStatusStyle(status).text }]} />
@@ -243,7 +277,6 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
               ))}
             </ScrollView>
 
-            {/* --- Tampilan jika kosong setelah difilter --- */}
             {filteredProducts.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Ionicons name="fast-food-outline" size={48} color="#ccc" />
@@ -254,7 +287,6 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
                 </ThemedText>
               </View>
             ) : (
-              /* --- Daftar Produk yang Lulus Filter --- */
               <View style={styles.productGrid}>
                 {filteredProducts.map((p) => {
                   const pStatus = getProductStatusStyle(p.status);
@@ -266,27 +298,23 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
                       activeOpacity={0.7}
                     >
                       <View style={styles.productIconContainer}>
-                        <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color="#4991CC" />
+                        <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color={colors.primary} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 5 }}>
                           <ThemedText style={[styles.productName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{p.name}</ThemedText>
-                          
-                          {/* --- CHIP STATUS PRODUK --- */}
                           <View style={[styles.statusChip, { backgroundColor: pStatus.bg }]}>
                             <ThemedText style={[styles.statusChipText, { color: pStatus.text }]}>
                               {pStatus.label}
                             </ThemedText>
                           </View>
                         </View>
-
                         <ThemedText style={styles.productPrice}>Rp {p.price.toLocaleString('id-ID')}</ThemedText>
-                        
                         <View style={styles.productMeta}>
                           <ThemedText style={styles.productMetaText}>{p.weightEst}kg | {p.volumeEst}L</ThemedText>
                           {p.isSubscription && (
-                            <View style={styles.subBadge}>
-                              <ThemedText style={styles.subBadgeText}>Langganan</ThemedText>
+                            <View style={[styles.subBadge, { backgroundColor: colors.secondary }]}>
+                              <ThemedText style={[styles.subBadgeText, { color: '#000' }]}>Langganan</ThemedText>
                             </View>
                           )}
                         </View>
@@ -307,7 +335,7 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
               <ThemedText style={styles.itemTitle}>Order ID: {o.id.substring(0,8)}...</ThemedText>
               <ThemedText style={styles.itemSub}>Status: {o.status}</ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#4991CC" />
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </TouchableOpacity>
         ));
 
@@ -318,7 +346,7 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
               <ThemedText style={styles.itemTitle}>{p.recipientName}</ThemedText>
               <ThemedText style={styles.itemSub}>Berat: {p.weight}kg | Vol: {p.volume}L</ThemedText>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#4991CC" />
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </TouchableOpacity>
         ));
         
@@ -332,7 +360,7 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
                 <ThemedText style={styles.itemTitle}>Rute: {r.id.substring(0,8)}...</ThemedText>
                 <ThemedText style={styles.itemSub}>Status: {r.status}</ThemedText>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#4991CC" />
+              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
             </TouchableOpacity>
           ))
         );
@@ -349,28 +377,38 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
           if (activeTab === 'USERS') {
             return (
               <TouchableOpacity onPress={handleAddStaff} style={{ marginRight: 15 }}>
-                <Ionicons name="person-add" size={24} color="#4991CC" />
+                <Ionicons name="person-add" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            );
+          }else if (activeTab === 'PRODUCTS') {
+            return (
+              <TouchableOpacity onPress={handleAddProduct} style={{ marginRight: 15 }}>
+                <Ionicons name="add-circle" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            );
+          }else if (activeTab === 'INFO'&& userRole === 'OWNER') {
+            return (
+              <TouchableOpacity onPress={handleEditDepot} style={{ marginRight: 15 }}>
+                <Ionicons name="create" size={24} color={colors.primary} />
               </TouchableOpacity>
             );
           }
-          return null; 
         }
       }} 
     />
 
       {isLoading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#4991CC" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <ThemedText style={{ marginTop: 10 }}>Memuat detail...</ThemedText>
         </View>
       ) : depot ? (
         <View style={{ flex: 1 }}>
           <View style={styles.headerCard}>
             <View style={styles.headerRow}>
-              <Ionicons name="business" size={36} color="#4991CC" />
+              <Ionicons name="business" size={36} color={colors.primary} />
               <View style={styles.titleContainer}>
                 <ThemedText style={styles.depotName}>{depot.name}</ThemedText>
-                <ThemedText style={styles.depotId}>ID: {id}</ThemedText> 
               </View>
             </View>
           </View>
@@ -379,10 +417,10 @@ const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABL
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer}>
               <TabButton title="Informasi" tabName="INFO" />
               <TabButton title={`Staf (${depot.users.length})`} tabName="USERS" />
+              <TabButton title={`Produk (${depot.products.length})`} tabName="PRODUCTS" />
               <TabButton title={`Order (${depot.orders.length})`} tabName="ORDERS" />
               <TabButton title={`Paket (${depot.packages.length})`} tabName="PACKAGES" />
               <TabButton title={`Rute (${depot.routes.length})`} tabName="ROUTES" />
-              <TabButton title={`Produk (${depot.products.length})`} tabName="PRODUCTS" />
             </ScrollView>
           </View>
 
@@ -410,7 +448,7 @@ const styles = StyleSheet.create({
   
   tabContainer: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
   tabButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 10, backgroundColor: '#F0F0F0' },
-  tabButtonActive: { backgroundColor: '#4991CC' },
+  // tabButtonActive: { backgroundColor: '#4991CC' }, <-- Dihapus karena sudah dinamis di atas
   tabText: { fontSize: 14, color: '#666', fontWeight: '600' },
   tabTextActive: { color: '#FFF' },
 
@@ -429,9 +467,8 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', marginTop: 20, color: '#888' },
 
   filterContainer: { flexDirection: 'row', marginBottom: 15, gap: 10 },
-  filterButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#4991CC', backgroundColor: '#FFF' },
-  filterButtonActive: { backgroundColor: '#4991CC' },
-  filterText: { color: '#4991CC', fontSize: 13, fontWeight: 'bold' },
+  filterButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1, backgroundColor: '#FFF' },
+  // filterButtonActive & filterText dihapus karena style dinamisnya ditaruh di komponen
   filterTextActive: { color: '#FFF' },
   statusChip: {
     paddingHorizontal: 8,
@@ -459,10 +496,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEE',
   },
-  statusFilterOptionActive: {
-    backgroundColor: '#4991CC',
-    borderColor: '#4991CC',
-  },
+  // statusFilterOptionActive: { backgroundColor: '#4991CC', borderColor: '#4991CC' }, <-- Dihapus
   statusFilterText: {
     fontSize: 12,
     color: '#666',
@@ -529,14 +563,12 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   subBadge: {
-    backgroundColor: '#E3F2FD',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   subBadgeText: {
     fontSize: 10,
-    color: '#1976D2',
     fontWeight: 'bold',
   },
 });

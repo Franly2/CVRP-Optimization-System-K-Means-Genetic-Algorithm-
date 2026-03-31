@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
-import { Body, Controller, ForbiddenException, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Post, UseGuards, Patch } from '@nestjs/common';
 import { DepotService } from './depot.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AddDepotDto } from './dto/addDepot.dto';
@@ -38,5 +38,18 @@ export class DepotController {
       @GetUser('companyId') companyId: string, 
     ) {
       return await this.depotService.getDepotById(companyId, id);
+    }
+
+    @Patch(':id')
+    async updateDepot(
+      @Param('id') id: string,
+      @Body() dto: AddDepotDto, 
+      @GetUser('companyId') companyId: string,
+      @GetUser('role') role: string,
+    ) {
+      if (role !== 'OWNER') {
+        throw new ForbiddenException('Hanya Owner yang diperbolehkan mengubah data depot.');
+      }
+      return await this.depotService.updateDepot(companyId, id, dto);
     }
 }

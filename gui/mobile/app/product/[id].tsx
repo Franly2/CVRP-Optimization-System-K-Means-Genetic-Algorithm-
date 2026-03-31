@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
+import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme Store
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -28,17 +29,15 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   
-  // Ambil token & role secara terpisah untuk stabilitas
+  // Ambil data dari Store
   const token = useAuthStore((state) => state.token);
   const role = useAuthStore((state) => state.role);
+  const { colors } = useThemeStore(); // 2. Gunakan colors dari ThemeStore
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // REF untuk mencegah infinite loop
   const hasFetched = React.useRef(false);
 
-  // Fungsi Fetch yang berdiri sendiri
   const loadData = useCallback(async (showLoadingSpinner: boolean) => {
     if (showLoadingSpinner) setIsLoading(true);
     try {
@@ -60,14 +59,9 @@ export default function ProductDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
-
       if (id && token && isMounted) {
-        // Kita set showLoadingSpinner ke false agar tidak muncul loading 
-        // yang mengganggu saat user cuma balik dari halaman Edit.
-        // Data akan terupdate secara "background" (SWR style).
         loadData(false); 
       }
-
       return () => {
         isMounted = false;
       };
@@ -88,7 +82,7 @@ export default function ProductDetailScreen() {
 
       if (response.ok) {
         Alert.alert('Berhasil', `Status diubah ke ${newStatus}`);
-        loadData(false); // Refresh data tanpa spinner besar
+        loadData(false);
       } else {
         const result = await response.json();
         Alert.alert('Gagal', result.message || 'Gagal update');
@@ -110,36 +104,26 @@ export default function ProductDetailScreen() {
 
   const handleDeletePress = () => {
     const message = "Apakah Anda yakin ingin menghapus produk ini dari katalog?";
-    
     if (Platform.OS === 'web') {
-        // Logika untuk Browser
         const confirmDelete = window.confirm(message);
-        if (confirmDelete) {
-        handleChangeStatus('DELETED');
-        }
+        if (confirmDelete) handleChangeStatus('DELETED');
     } else {
-        // Logika untuk Android/iOS
         Alert.alert("Konfirmasi Hapus", message, [
         { text: "Batal", style: "cancel" },
-        { 
-            text: "Hapus", 
-            style: "destructive", 
-            onPress: () => handleChangeStatus('DELETED') 
-        }
+        { text: "Hapus", style: "destructive", onPress: () => handleChangeStatus('DELETED') }
         ]);
     }
-};
+  };
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4991CC" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!product) return null;
-
   const statusStyle = getStatusStyle(product.status);
 
   return (
@@ -156,9 +140,9 @@ export default function ProductDetailScreen() {
               </ThemedText>
             </View>
             {product.isSubscription && (
-              <View style={styles.subBadge}>
-                <Ionicons name="calendar" size={12} color="#1976D2" />
-                <ThemedText style={styles.subBadgeText}>Langganan {product.durationDays} Hari</ThemedText>
+              <View style={[styles.subBadge, { backgroundColor: colors.secondary + '20' }]}>
+                <Ionicons name="calendar" size={12} color={colors.primary} />
+                <ThemedText style={[styles.subBadgeText, { color: colors.primary }]}>Langganan {product.durationDays} Hari</ThemedText>
               </View>
             )}
           </View>
@@ -166,120 +150,105 @@ export default function ProductDetailScreen() {
           <ThemedText style={styles.productPrice}>Rp {product.price.toLocaleString('id-ID')}</ThemedText>
         </View>
 
-        {/* --- Manajemen Status (Dipindah ke dalam ScrollView) --- */}
+        {/* --- Manajemen Status --- */}
         <View style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>Kontrol Produk</ThemedText>
-        <View style={styles.statusActionContainer}>
-            
-            {/* --- 1. AREA OWNER (APPROVAL, DELETE, & RESTORE) --- */}
+          <ThemedText style={styles.sectionTitle}>Kontrol Produk</ThemedText>
+          <View style={styles.statusActionContainer}>
             {role === 'OWNER' && (
-            <View>
+              <View>
                 <ThemedText style={[styles.label, { marginBottom: 10 }]}>Tindakan Owner:</ThemedText>
                 <View style={styles.row}>
-                
-                {/* Tombol Pulihkan (Hanya jika status DELETED) */}
-                {product.status === 'DELETED' && (
+                  {product.status === 'DELETED' && (
                     <TouchableOpacity 
-                    style={[styles.actionButton, { backgroundColor: '#1976D2' }]} 
-                    onPress={() => handleChangeStatus('UNAVAILABLE')}
+                      style={[styles.actionButton, { backgroundColor: colors.primary }]} 
+                      onPress={() => handleChangeStatus('UNAVAILABLE')}
                     >
-                    <Ionicons name="refresh-circle-outline" size={20} color="#FFF" />
-                    <ThemedText style={styles.buttonTextSmall}>Pulihkan Produk</ThemedText>
+                      <Ionicons name="refresh-circle-outline" size={20} color="#FFF" />
+                      <ThemedText style={styles.buttonTextSmall}>Pulihkan Produk</ThemedText>
                     </TouchableOpacity>
-                )}
-
-                {/* Tombol Setujui & Tolak (Hanya jika PENDING/REJECTED) */}
-                {(product.status === 'PENDING' || product.status === 'REJECTED') && (
+                  )}
+                  {(product.status === 'PENDING' || product.status === 'REJECTED') && (
                     <>
-                    <TouchableOpacity 
+                      <TouchableOpacity 
                         style={[styles.actionButton, { backgroundColor: '#2E7D32' }]} 
                         onPress={() => handleChangeStatus('UNAVAILABLE')}
-                    >
+                      >
                         <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
                         <ThemedText style={styles.buttonTextSmall}>Setujui</ThemedText>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
+                      </TouchableOpacity>
+                      <TouchableOpacity 
                         style={[styles.actionButton, { backgroundColor: '#E64A19', marginLeft: 10 }]} 
                         onPress={() => handleChangeStatus('REJECTED')}
-                    >
+                      >
                         <Ionicons name="close-circle-outline" size={20} color="#FFF" />
                         <ThemedText style={styles.buttonTextSmall}>Tolak</ThemedText>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
                     </>
-                )}
-
-                {/* Tombol Hapus (Hanya muncul jika BELUM DELETED) */}
-                {product.status !== 'DELETED' && (
+                  )}
+                  {product.status !== 'DELETED' && (
                     <TouchableOpacity 
-                    style={[styles.actionButton, { backgroundColor: '#B71C1C', marginLeft: 10 }]} 
-                    onPress={handleDeletePress}
+                      style={[styles.actionButton, { backgroundColor: '#B71C1C', marginLeft: 10 }]} 
+                      onPress={handleDeletePress}
                     >
-                    <Ionicons name="trash-outline" size={20} color="#FFF" />
-                    <ThemedText style={styles.buttonTextSmall}>Hapus</ThemedText>
+                      <Ionicons name="trash-outline" size={20} color="#FFF" />
+                      <ThemedText style={styles.buttonTextSmall}>Hapus</ThemedText>
                     </TouchableOpacity>
-                )}
+                  )}
                 </View>
-
-                {/* Garis pemisah jika ada tombol operasional di bawahnya */}
                 {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
-                <View style={{ height: 1, backgroundColor: '#EEE', marginVertical: 15 }} />
+                  <View style={{ height: 1, backgroundColor: '#EEE', marginVertical: 15 }} />
                 )}
-            </View>
+              </View>
             )}
 
-            {/* --- 2. MODE OPERASIONAL (OWNER & ADMIN) --- */}
             {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
-            <TouchableOpacity 
+              <TouchableOpacity 
                 style={[
-                styles.statusToggle, 
-                { backgroundColor: product.status === 'AVAILABLE' ? '#FFA000' : '#2E7D32' }
+                  styles.statusToggle, 
+                  { backgroundColor: product.status === 'AVAILABLE' ? '#FFA000' : '#2E7D32' }
                 ]} 
                 onPress={() => handleChangeStatus(product.status === 'AVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE')}
-            >
+              >
                 <Ionicons 
-                name={product.status === 'AVAILABLE' ? "eye-off-outline" : "eye-outline"} 
-                size={20} color="#FFF" 
+                  name={product.status === 'AVAILABLE' ? "eye-off-outline" : "eye-outline"} 
+                  size={20} color="#FFF" 
                 />
                 <ThemedText style={styles.buttonTextSmall}>
-                {product.status === 'AVAILABLE' ? 'Set ke Non-Aktif (Kosong)' : 'Aktifkan Kembali'}
+                  {product.status === 'AVAILABLE' ? 'Set ke Non-Aktif (Kosong)' : 'Aktifkan Kembali'}
                 </ThemedText>
-            </TouchableOpacity>
+              </TouchableOpacity>
             )}
 
-            {/* --- 3. INFO UNTUK ADMIN/OWNER TENTANG STATUS DELETED --- */}
             {product.status === 'DELETED' && (
-            <View style={[styles.infoBox, { backgroundColor: '#FFEBEE', marginTop: role === 'OWNER' ? 10 : 0 }]}>
+              <View style={[styles.infoBox, { backgroundColor: '#FFEBEE', marginTop: role === 'OWNER' ? 10 : 0 }]}>
                 <Ionicons name="trash-bin-outline" size={20} color="#B71C1C" />
                 <ThemedText style={{ color: '#B71C1C', fontSize: 13, flex: 1 }}>
-                Produk ini berada di tempat sampah. {role === 'OWNER' ? 'Gunakan tombol Pulihkan untuk mengembalikan.' : 'Hubungi Owner untuk memulihkan.'}
+                  Produk ini berada di tempat sampah. {role === 'OWNER' ? 'Gunakan tombol Pulihkan.' : 'Hubungi Owner.'}
                 </ThemedText>
-            </View>
+              </View>
             )}
 
-            {/* --- 4. INFO UNTUK ADMIN --- */}
             {role === 'ADMIN' && (
-            <>
+              <>
                 {product.status === 'PENDING' && (
-                <View style={[styles.infoBox, { backgroundColor: '#E3F2FD' }]}>
-                    <Ionicons name="time-outline" size={20} color="#1976D2" />
-                    <ThemedText style={{ color: '#1976D2', fontSize: 13, flex: 1 }}>
-                    Menunggu Owner menyetujui produk ini.
+                  <View style={[styles.infoBox, { backgroundColor: colors.primary + '15' }]}>
+                    <Ionicons name="time-outline" size={20} color={colors.primary} />
+                    <ThemedText style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
+                      Menunggu Owner menyetujui produk ini.
                     </ThemedText>
-                </View>
+                  </View>
                 )}
                 {product.status === 'REJECTED' && (
-                <View style={styles.infoBox}>
+                  <View style={styles.infoBox}>
                     <Ionicons name="alert-circle-outline" size={20} color="#C62828" />
                     <ThemedText style={{ color: '#C62828', fontSize: 13, flex: 1 }}>
-                    Produk ditolak oleh Owner.
+                      Produk ditolak oleh Owner.
                     </ThemedText>
-                </View>
+                  </View>
                 )}
-            </>
+              </>
             )}
-            
-        </View>
+          </View>
         </View>
 
         {/* --- Specs Section --- */}
@@ -309,8 +278,8 @@ export default function ProductDetailScreen() {
                 style={styles.depotCard}
                 onPress={() => router.push(`/depot/${depot.id}`)}
               >
-                <View style={styles.depotIcon}>
-                  <Ionicons name="business" size={20} color="#4991CC" />
+                <View style={[styles.depotIcon, { backgroundColor: colors.primary + '15' }]}>
+                  <Ionicons name="business" size={20} color={colors.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <ThemedText style={styles.depotName}>{depot.name}</ThemedText>
@@ -327,7 +296,10 @@ export default function ProductDetailScreen() {
 
       {/* --- Action Bar --- */}
       <View style={styles.actionBar}>
-        <TouchableOpacity style={styles.editButton} onPress={() => router.push(`/product/edit/${product.id}`)}>
+        <TouchableOpacity 
+          style={[styles.editButton, { backgroundColor: colors.primary }]} 
+          onPress={() => router.push(`/product/edit/${product.id}`)}
+        >
           <Ionicons name="create-outline" size={20} color="#FFF" />
           <ThemedText style={styles.buttonText}>Edit Produk</ThemedText>
         </TouchableOpacity>
@@ -343,8 +315,8 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   statusText: { fontSize: 11, fontWeight: 'bold' },
-  subBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E3F2FD', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  subBadgeText: { fontSize: 11, color: '#1976D2', fontWeight: 'bold' },
+  subBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  subBadgeText: { fontSize: 11, fontWeight: 'bold' },
   productName: { fontSize: 24, fontWeight: 'bold', color: '#333' },
   productPrice: { fontSize: 20, color: '#2E7D32', fontWeight: 'bold', marginTop: 5 },
   section: { paddingHorizontal: 20, paddingTop: 20 },
@@ -354,12 +326,12 @@ const styles = StyleSheet.create({
   specLabel: { fontSize: 12, color: '#888', marginTop: 5 },
   specValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   depotCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
-  depotIcon: { width: 40, height: 40, backgroundColor: '#F0F7FF', borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  depotIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   depotName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
   depotAddress: { fontSize: 12, color: '#888', marginTop: 2 },
   emptyText: { color: '#999', fontStyle: 'italic' },
   actionBar: { padding: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE' },
-  editButton: { backgroundColor: '#4991CC', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 12, gap: 10 },
+  editButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 12, gap: 10 },
   buttonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
   statusActionContainer: {
     backgroundColor: '#FFF',
@@ -395,7 +367,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 10,
-    backgroundColor: '#FFEBEE',
     borderRadius: 8,
   },
   label : { 

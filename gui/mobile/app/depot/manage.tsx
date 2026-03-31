@@ -5,6 +5,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
+import { useThemeStore } from '../../store/themeStore'; // 1. Import themeStore
 
 interface Depot {
   id: string;
@@ -20,13 +21,15 @@ export default function ManageDepotScreen() {
   const [depots, setDepots] = useState<Depot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const token = useAuthStore((state) => state.token);
+  
+  // 2. Ambil warna dinamis dari Zustand
+  const { colors } = useThemeStore();
+  console.log('Colors from themeStore:', colors); // Debug: Pastikan colors sudah terisi dengan benar
 
-
-  const fetchDepots = useCallback (async () => {
+  const fetchDepots = useCallback(async () => {
     setIsLoading(true);
-      if (!token) return;
-      try {
-
+    if (!token) return;
+    try {
       const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS; 
       
       const response = await fetch(`http://${api_address}:3000/depot`, {
@@ -57,7 +60,7 @@ export default function ManageDepotScreen() {
       fetchDepots();
       return () => {
       };
-    }, [])
+    }, [fetchDepots])
   );
 
   const handleAddDepot = () => {
@@ -69,18 +72,20 @@ export default function ManageDepotScreen() {
   };
 
   const renderDepotItem = ({ item }: { item: Depot }) => (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => handleDepotDetail(item.id)} 
+      activeOpacity={0.7} 
+    >
       <View style={styles.cardContent}>
         <ThemedText style={styles.depotName}>{item.name}</ThemedText>
         <ThemedText style={styles.depotAddress}>{item.address}</ThemedText>
       </View>
-      <TouchableOpacity 
-        style={styles.actionButton}
-        onPress={() => handleDepotDetail(item.id)} // Memanggil fungsi navigasi
-      >
-        <Ionicons name="chevron-forward" size={24} color="#4991CC" />
-      </TouchableOpacity>
-    </View>
+      
+      <View style={styles.actionButton}>
+        <Ionicons name="chevron-forward" size={24} color={colors.primary} />
+      </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -91,25 +96,34 @@ export default function ManageDepotScreen() {
           headerShown: true,
           headerRight: () => (
             <TouchableOpacity 
-              onPress={handleAddDepot} // Memanggil fungsi navigasi
+              onPress={handleAddDepot}
               style={styles.addButtonHeader}
             >
-              <Ionicons name="add-circle" size={28} color="#4991CC" />
+              {/* 4. Warna icon tambah di header pakai colors.primary */}
+              <Ionicons name="add-circle" size={28} color={colors.primary} />
             </TouchableOpacity>
-          )
+          ),
+          // Opsional: Kalau kamu mau warna baris atas headernya ikutan warna primary
+          // headerStyle: { backgroundColor: colors.primary },
+          // headerTintColor: '#fff',
         }} 
       />
 
       {isLoading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#4991CC" />
+          {/* 5. Warna loading indicator pakai colors.primary */}
+          <ActivityIndicator size="large" color={colors.primary} />
           <ThemedText style={{ marginTop: 10 }}>Memuat data depot...</ThemedText>
         </View>
       ) : depots.length === 0 ? (
         <View style={styles.centerContent}>
           <Ionicons name="business-outline" size={64} color="#ccc" />
           <ThemedText style={styles.emptyText}>Belum ada depot yang terdaftar.</ThemedText>
-          <TouchableOpacity style={styles.addPrimaryButton} onPress={handleAddDepot}>
+          {/* 6. Tombol tambah depot pertama pakai colors.primary untuk background-nya */}
+          <TouchableOpacity 
+            style={[styles.addPrimaryButton, { backgroundColor: colors.primary }]} 
+            onPress={handleAddDepot}
+          >
             <ThemedText style={styles.addPrimaryButtonText}>+ Tambah Depot Pertama</ThemedText>
           </TouchableOpacity>
         </View>
@@ -151,6 +165,11 @@ const styles = StyleSheet.create({
   actionButton: { padding: 10 },
   addButtonHeader: { marginRight: 15 },
   emptyText: { marginTop: 15, fontSize: 16, color: '#888', textAlign: 'center', marginBottom: 20 },
-  addPrimaryButton: { backgroundColor: '#4991CC', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8 },
+  
+  addPrimaryButton: { 
+    paddingVertical: 12, 
+    paddingHorizontal: 20, 
+    borderRadius: 8 
+  },
   addPrimaryButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 }
 });

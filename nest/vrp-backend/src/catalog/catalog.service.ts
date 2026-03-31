@@ -33,7 +33,7 @@ export class CatalogService {
         let initialStatus: ProductStatus = ProductStatus.PENDING;
   
         if (role === 'OWNER') {
-          initialStatus = ProductStatus.ACCEPTED;
+          initialStatus = ProductStatus.UNAVAILABLE;
         }
 
         const newProduct = await tx.product.create({
@@ -89,10 +89,10 @@ export class CatalogService {
         }
 
         if (role === 'ADMIN') {
-          const forbiddenForAdmin: ProductStatus[] = [ProductStatus.ACCEPTED, ProductStatus.REJECTED];
+          const forbiddenForAdmin: ProductStatus[] = [ProductStatus.REJECTED];
           
           if (forbiddenForAdmin.includes(newStatus)) {
-            throw new BadRequestException('Hanya Owner yang dapat menyetujui atau menolak produk baru.');
+            throw new BadRequestException('Hanya Owner yang dapat menolak produk baru.');
           }
           if (product.status === ProductStatus.PENDING) {
             throw new BadRequestException('Produk masih dalam status PENDING. Tunggu persetujuan Owner.');

@@ -1,6 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
+// 1. IMPORT THEME STORE
+import { useThemeStore } from '@/store/themeStore'; // Sesuaikan path jika berbeda
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -32,6 +34,9 @@ export default function HumanDetailScreen() {
   const token = useAuthStore((state) => state.token);
   const userRole = useAuthStore((state) => state.role);
   
+  // 2. PANGGIL WARNA DINAMIS
+  const { colors } = useThemeStore();
+
   const [staff, setStaff] = useState<StaffDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,7 +66,6 @@ export default function HumanDetailScreen() {
     }
   };
 
-  // --- Fungsi Umum untuk Mengubah Status (Endpoint Baru) ---
   const handleChangeStatus = async (newStatus: 'ACCEPTED' | 'REJECTED' | 'SUSPENDED') => {
     setIsProcessing(true);
     try {
@@ -140,7 +144,8 @@ export default function HumanDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#4991CC" />
+        {/* 3. Gunakan warna dinamis untuk loading */}
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -154,7 +159,8 @@ export default function HumanDetailScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header Profil */}
         <View style={styles.headerSection}>
-          <View style={styles.avatarLarge}>
+          {/* 4. Avatar menggunakan warna dinamis */}
+          <View style={[styles.avatarLarge, { backgroundColor: colors.primary }]}>
             <ThemedText style={styles.avatarText}>
               {staff.fullName.substring(0, 2).toUpperCase()}
             </ThemedText>
@@ -246,7 +252,8 @@ export default function HumanDetailScreen() {
             <ThemedText style={styles.sectionTitle}>Detail Kendaraan</ThemedText>
             <View style={styles.vehicleCard}>
               <View style={styles.vehicleHeader}>
-                <Ionicons name={staff.vehicle.type === 'MOTOR' ? 'bicycle-outline' : 'car-outline'} size={32} color="#4991CC" />
+                {/* 5. Icon Kendaraan pakai warna dinamis */}
+                <Ionicons name={staff.vehicle.type === 'MOTOR' ? 'bicycle-outline' : 'car-outline'} size={32} color={colors.primary} />
                 <View style={{marginLeft: 12}}>
                   <ThemedText style={styles.plateText}>{staff.vehicle.plateNumber}</ThemedText>
                   <ThemedText style={styles.modelText}>{staff.vehicle.model}</ThemedText>
@@ -254,8 +261,16 @@ export default function HumanDetailScreen() {
               </View>
               <View style={styles.divider} />
               <View style={styles.row}>
-                <View style={styles.capItem}><ThemedText style={styles.capLabel}>Beban Maks</ThemedText><ThemedText style={styles.capValue}>{staff.vehicle.maxWeight} kg</ThemedText></View>
-                <View style={styles.capItem}><ThemedText style={styles.capLabel}>Volume Maks</ThemedText><ThemedText style={styles.capValue}>{staff.vehicle.maxVolume} L</ThemedText></View>
+                <View style={styles.capItem}>
+                  <ThemedText style={styles.capLabel}>Beban Maks</ThemedText>
+                  {/* 6. Text Highlight pakai warna dinamis */}
+                  <ThemedText style={[styles.capValue, { color: colors.primary }]}>{staff.vehicle.maxWeight} kg</ThemedText>
+                </View>
+                <View style={styles.capItem}>
+                  <ThemedText style={styles.capLabel}>Volume Maks</ThemedText>
+                  {/* 7. Text Highlight pakai warna dinamis */}
+                  <ThemedText style={[styles.capValue, { color: colors.primary }]}>{staff.vehicle.maxVolume} L</ThemedText>
+                </View>
               </View>
             </View>
           </View>
@@ -270,7 +285,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { padding: 20 },
   headerSection: { alignItems: 'center', marginBottom: 25 },
-  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#4991CC', justifyContent: 'center', alignItems: 'center', marginBottom: 12, elevation: 4 },
+  // Background dihapus dari sini
+  avatarLarge: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 12, elevation: 4 },
   avatarText: { color: '#FFF', fontSize: 28, fontWeight: 'bold' },
   nameText: { fontSize: 22, fontWeight: 'bold', color: '#333' },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginTop: 8 },
@@ -289,7 +305,6 @@ const styles = StyleSheet.create({
   },
   acceptButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 
-  // --- Style Panel Kontrol Baru ---
   statusPanel: { backgroundColor: '#FFF', borderRadius: 15, padding: 15, alignItems: 'center', elevation: 2 },
   panelTitle: { fontSize: 14, fontWeight: 'bold', color: '#666', marginBottom: 12, textAlign: 'center' },
   buttonRow: { 
@@ -328,7 +343,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   capItem: { flex: 1, alignItems: 'center' },
   capLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
-  capValue: { fontSize: 16, fontWeight: 'bold', color: '#4991CC' },
+  capValue: { fontSize: 16, fontWeight: 'bold' },
   
   badgeSuccess: { backgroundColor: '#28A745' }, 
   badgeDanger: { backgroundColor: '#DC3545' },  

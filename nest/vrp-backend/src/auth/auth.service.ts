@@ -11,6 +11,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -25,6 +26,12 @@ export interface LoginResponse {
   role: string;
   username: string;
   companyId: string;
+  branding: {
+    logoUrl: string | null;
+    colorPrimary: string | null; 
+    colorSecondary: string | null;
+    colorTertiary: string | null;
+  };
 }
 
 export interface meResponse {
@@ -68,6 +75,23 @@ export class AuthService {
     },
   });
 
+  async getBrandingBySlug(slug: string) {
+  const company = await this.prisma.company.findUnique({
+    where: { slug },
+    select: {
+      name: true,
+      logoUrl: true,
+      colorPrimary: true,
+      colorSecondary: true,
+      colorTertiary: true,
+    },
+  });
+
+  if (!company) throw new NotFoundException('Perusahaan tidak terdaftar');
+
+  return { status: 'success', data: company };
+}
+
   async registerUser(data: RegisterUserDto): Promise<{ status: string; message: string }> {
     const { 
       username, 
@@ -87,7 +111,6 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     try {
-      // Perbaikan: Hanya buat data kendaraan jika dia mendaftar sebagai kurir
       const vehicleData = role === 'DRIVER' ? {
         create: {
           plateNumber: plateNumber ?? "-",
@@ -119,7 +142,7 @@ export class AuthService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           // Pesan error disesuaikan dengan arsitektur baru
-          throw new ConflictException('Username sudah terpakai di perusahaan ini!');
+          throw new ConflictException('Username sudah terpakai di perusahaan ini');
         }
       }
       console.error('Registration Error:', error);
@@ -161,7 +184,7 @@ export class AuthService {
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
-        throw new UnauthorizedException('Password salah!');
+        throw new UnauthorizedException('Password salah');
       }
 
       const payload = {
@@ -178,6 +201,12 @@ export class AuthService {
         role: user.role,
         username: user.username,
         companyId: user.companyId,
+        branding: {
+          logoUrl: company.logoUrl,
+          colorPrimary: company.colorPrimary,
+          colorSecondary: company.colorSecondary,
+          colorTertiary: company.colorTertiary,
+        }
       };
     }
 }
