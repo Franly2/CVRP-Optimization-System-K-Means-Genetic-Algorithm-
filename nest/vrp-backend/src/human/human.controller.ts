@@ -2,13 +2,14 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable prettier/prettier */
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { HumanService } from './human.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AddAdminDto } from './dto/addAdmin.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { addDriverDto } from './dto/addDriver.dto';
 import { ChangeStatusDto } from './dto/changeStatus.dto';
+import { EditStaffDto } from './dto/editStaff.dto';
 
 @UseGuards(JwtAuthGuard )
 @Controller('human')
@@ -77,5 +78,19 @@ export class HumanController {
         }
 
         return await this.humanService.getStaffById(staffId, companyId);
+    }
+
+    @Put(':id')
+    async editStaff(
+        @Param('id') staffId: string,
+        @Body() dto: EditStaffDto,
+        @GetUser('companyId') companyId: string,
+        @GetUser('role') role: string,
+    ) {
+        if (role !== 'OWNER' && role !== 'ADMIN') {
+        throw new ForbiddenException('Akses ditolak! Hanya Owner dan Admin yang bisa mengedit data staf.');
+        }
+
+        return await this.humanService.editStaff(companyId, staffId, dto);
     }
 }

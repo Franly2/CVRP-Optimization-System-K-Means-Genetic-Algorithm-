@@ -45,7 +45,8 @@ async function main() {
         tx as any, 
         companyId, 
         companyData.shifts.pagi.id, 
-        companyData.shifts.siang.id
+        companyData.shifts.siang.id,
+        depot.id
     );
 
     // 4. Buat Transaksi (Order) 

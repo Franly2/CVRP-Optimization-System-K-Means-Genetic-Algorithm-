@@ -78,7 +78,16 @@ export class DepotService {
             orders: true,     // Mengambil daftar order dari depot ini
             packages: true,   // Mengambil daftar paket di depot ini
             routes: true,      // Mengambil daftar rute yang bermula dari depot ini
-            products: true     // Mengambil daftar produk yang tersedia di depot ini
+            products: {
+              include: {
+                images: {
+                  orderBy: [
+                    { isMain: 'desc' }, // isMain: true akan berada di urutan paling atas
+                    { order: 'asc' },   // Sisanya diurutkan sesuai nomor urut
+                  ],
+                },
+              },
+            }
           }
         });
 

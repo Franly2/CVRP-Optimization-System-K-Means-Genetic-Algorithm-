@@ -136,15 +136,18 @@ export class CatalogService {
                 address: true,
               }
             },
-            // // Jika kamu punya relasi ke Company (opsional)
-            // company: {
-            //   select: {
-            //     name: true
-            //   }
-            // }
+            // --- TAMBAHKAN RELASI IMAGES DI SINI ---
+            images: {
+              orderBy: [
+                { isMain: 'desc' }, // isMain: true akan berada di urutan [0]
+                { order: 'asc' },   // Sisanya diurutkan sesuai nomor urut
+              ],
+            },
           }
         });
 
+        // Pengecekan companyId sudah otomatis diatasi oleh withTenant, 
+        // tapi tidak apa-apa untuk proteksi ekstra
         if (!product || product.companyId !== companyId) {
           throw new NotFoundException(`Produk dengan ID ${productId} tidak ditemukan.`);
         }

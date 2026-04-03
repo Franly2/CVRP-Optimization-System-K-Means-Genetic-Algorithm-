@@ -1,19 +1,30 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-// 1. IMPORT THEME STORE
 import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface UserItem { id: string; fullName: string; role: string; username: string; status: string; }
 interface OrderItem { id: string; status: string; totalPrice: number; deliveryAddress: string; }
 interface PackageItem { id: string; recipientName: string; status: string; weight: number; volume: number; }
 interface RouteItem { id: string; status: string; date: string; }
-interface ProductItem { id: string; name: string; price: number; weightEst: number; volumeEst: number; isSubscription: boolean;status: string; }
+
+// --- UPDATE INTERFACE PRODUCT ITEM ---
+interface ProductImage { id: string; url: string; isMain: boolean; }
+interface ProductItem { 
+  id: string; 
+  name: string; 
+  price: number; 
+  weightEst: number; 
+  volumeEst: number; 
+  isSubscription: boolean;
+  status: string; 
+  images?: ProductImage[]; // Tambahkan properti images
+}
 
 interface DepotDetail {
   id: string;
@@ -34,7 +45,6 @@ export default function DepotDetailScreen() {
   const router = useRouter();
   const token = useAuthStore((state) => state.token);
   
-  // 2. PANGGIL WARNA DINAMIS
   const { colors } = useThemeStore();
 
   const [depot, setDepot] = useState<DepotDetail | null>(null);
@@ -85,7 +95,7 @@ export default function DepotDetailScreen() {
     <TouchableOpacity 
       style={[
         styles.tabButton, 
-        activeTab === tabName && { backgroundColor: colors.primary } // Dinamis
+        activeTab === tabName && { backgroundColor: colors.primary } 
       ]}
       onPress={() => setActiveTab(tabName)}
     >
@@ -179,13 +189,13 @@ export default function DepotDetailScreen() {
                   key={role}
                   style={[
                     styles.filterButton, 
-                    { borderColor: colors.primary }, // Border dinamis
-                    staffFilter === role && { backgroundColor: colors.primary } // Bg dinamis
+                    { borderColor: colors.primary }, 
+                    staffFilter === role && { backgroundColor: colors.primary } 
                   ]}
                   onPress={() => setStaffFilter(role as any)}
                 >
                   <ThemedText style={[
-                    { color: colors.primary, fontSize: 13, fontWeight: 'bold' }, // Teks dinamis
+                    { color: colors.primary, fontSize: 13, fontWeight: 'bold' }, 
                     staffFilter === role && styles.filterTextActive
                   ]}>
                     {role === 'ALL' ? 'Semua Role' : role}
@@ -200,7 +210,7 @@ export default function DepotDetailScreen() {
                   key={status}
                   style={[
                     styles.statusFilterOption, 
-                    statusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } // Dinamis
+                    statusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } 
                   ]}
                   onPress={() => setStatusFilter(status as any)}
                 >
@@ -265,7 +275,7 @@ export default function DepotDetailScreen() {
                   key={status}
                   style={[
                     styles.statusFilterOption, 
-                    productStatusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } // Dinamis
+                    productStatusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary }
                   ]}
                   onPress={() => setProductStatusFilter(status as any)}
                 >
@@ -290,6 +300,12 @@ export default function DepotDetailScreen() {
               <View style={styles.productGrid}>
                 {filteredProducts.map((p) => {
                   const pStatus = getProductStatusStyle(p.status);
+                  
+                  // --- MENCARI GAMBAR UTAMA ---
+                  const mainImage = p.images && p.images.length > 0 
+                    ? p.images.find(img => img.isMain) || p.images[0] // Cari isMain, jika tidak ada ambil index 0
+                    : null;
+
                   return (
                     <TouchableOpacity 
                       key={p.id} 
@@ -297,9 +313,19 @@ export default function DepotDetailScreen() {
                       onPress={() => router.push(`/product/${p.id}`)}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.productIconContainer}>
-                        <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color={colors.primary} />
+                      {/* --- TAMPILKAN GAMBAR JIKA ADA, IKON JIKA TIDAK --- */}
+                      <View style={[styles.productIconContainer, mainImage && { backgroundColor: 'transparent' }]}>
+                        {mainImage ? (
+                          <Image 
+                            source={{ uri: mainImage.url }} 
+                            style={styles.productImage} 
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color={colors.primary} />
+                        )}
                       </View>
+                      
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 5 }}>
                           <ThemedText style={[styles.productName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{p.name}</ThemedText>
@@ -448,7 +474,6 @@ const styles = StyleSheet.create({
   
   tabContainer: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
   tabButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 10, backgroundColor: '#F0F0F0' },
-  // tabButtonActive: { backgroundColor: '#4991CC' }, <-- Dihapus karena sudah dinamis di atas
   tabText: { fontSize: 14, color: '#666', fontWeight: '600' },
   tabTextActive: { color: '#FFF' },
 
@@ -468,7 +493,6 @@ const styles = StyleSheet.create({
 
   filterContainer: { flexDirection: 'row', marginBottom: 15, gap: 10 },
   filterButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1, backgroundColor: '#FFF' },
-  // filterButtonActive & filterText dihapus karena style dinamisnya ditaruh di komponen
   filterTextActive: { color: '#FFF' },
   statusChip: {
     paddingHorizontal: 8,
@@ -496,7 +520,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEE',
   },
-  // statusFilterOptionActive: { backgroundColor: '#4991CC', borderColor: '#4991CC' }, <-- Dihapus
   statusFilterText: {
     fontSize: 12,
     color: '#666',
@@ -540,6 +563,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    overflow: 'hidden', // Penting agar gambar tidak keluar dari radius
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
   },
   productName: {
     fontSize: 16,

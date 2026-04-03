@@ -1,4 +1,7 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
@@ -9,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { addDriverDto } from './dto/addDriver.dto';
 import { AccountStatus, Role } from '@prisma/client';
+import { EditStaffDto } from './dto/editStaff.dto';
 
 @Injectable()
 export class HumanService {
@@ -203,4 +207,67 @@ export class HumanService {
     data: result,
   };
 }
+
+async editStaff(companyId: string, staffId: string, dto: EditStaffDto) {
+    return await this.prisma.withTenant(companyId, async (tx) => {
+      
+      // 1. Pastikan user eksis di company ini
+      const existingUser = await tx.user.findUnique({
+        where: { id: staffId },
+        include: { vehicle: true }, // Ambil relasi vehicle untuk dicek
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException('Data staf tidak ditemukan di perusahaan ini.');
+      }
+
+      // 2. Siapkan wadah update untuk tabel User
+      const userUpdateData: any = {};
+      if (dto.fullName) userUpdateData.fullName = dto.fullName;
+      if (dto.phoneNumber) userUpdateData.phoneNumber = dto.phoneNumber;
+      if (dto.depotId) userUpdateData.depotId = dto.depotId;
+      if (dto.birthDate) {
+        userUpdateData.birthDate = new Date(dto.birthDate).toISOString();
+      }
+
+      // Jika ada perubahan password, lakukan hashing
+      if (dto.password) {
+        const salt = await bcrypt.genSalt();
+        userUpdateData.password = await bcrypt.hash(dto.password, salt);
+      }
+
+      // 3. Eksekusi Update pada tabel User
+      await tx.user.update({
+        where: { id: staffId },
+        data: userUpdateData,
+      });
+
+      // 4. Khusus Role DRIVER: Update tabel Vehicle jika ada data kendaraan yang dikirim
+      const isVehicleUpdateProvided = dto.vehicleType || dto.plateNumber || dto.vehicleModel || dto.maxWeight || dto.maxVolume;
+
+      if (existingUser.role === 'DRIVER' && isVehicleUpdateProvided) {
+        if (!existingUser.vehicle) {
+           throw new BadRequestException('Driver ini belum memiliki data kendaraan dasar untuk diupdate.');
+        }
+
+        await tx.vehicle.update({
+          // Asumsi kamu merelasikan vehicle ke user menggunakan field `userId` yang Unik
+          where: { id: existingUser.vehicle.id }, 
+          data: {
+            // Gunakan data baru jika ada, jika tidak ada pakai data lama
+            type: dto.vehicleType ?? existingUser.vehicle.type,
+            plateNumber: dto.plateNumber ?? existingUser.vehicle.plateNumber,
+            model: dto.vehicleModel ?? existingUser.vehicle.model,
+            maxWeight: dto.maxWeight ?? existingUser.vehicle.maxWeight,
+            maxVolume: dto.maxVolume ?? existingUser.vehicle.maxVolume,
+          },
+        });
+      }
+
+      return {
+        status: 'success',
+        message: `Data ${existingUser.role} berhasil diperbarui.`,
+      };
+    });
+  }
 }

@@ -1,16 +1,23 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme Store
+import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface DepotItem {
   id: string;
   name: string;
   address: string;
+}
+
+interface ProductImage {
+  id: string;
+  url: string;
+  isMain: boolean;
+  order: number;
 }
 
 interface ProductDetail {
@@ -23,20 +30,19 @@ interface ProductDetail {
   isSubscription: boolean;
   durationDays: number | null;
   availableAt: DepotItem[];
+  images?: ProductImage[]; 
 }
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   
-  // Ambil data dari Store
   const token = useAuthStore((state) => state.token);
   const role = useAuthStore((state) => state.role);
-  const { colors } = useThemeStore(); // 2. Gunakan colors dari ThemeStore
+  const { colors } = useThemeStore(); 
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const hasFetched = React.useRef(false);
 
   const loadData = useCallback(async (showLoadingSpinner: boolean) => {
     if (showLoadingSpinner) setIsLoading(true);
@@ -126,11 +132,49 @@ export default function ProductDetailScreen() {
   if (!product) return null;
   const statusStyle = getStatusStyle(product.status);
 
+  // --- LOGIKA PEMISAHAN GAMBAR ---
+  const mainImage = product.images?.find(img => img.isMain) || product.images?.[0];
+  const otherImages = product.images?.filter(img => img.id !== mainImage?.id) || [];
+
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: 'Detail Produk', headerShown: true }} />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        
+        {/* --- Image Section --- */}
+        <View style={styles.imageSection}>
+          <View style={styles.imageHeader}>
+             <ThemedText style={styles.imageHeaderText}>Foto Utama</ThemedText>
+          </View>
+          
+          {/* Container gambar utama yang posisinya di tengah dengan ukuran fix kotak */}
+          <View style={styles.mainImageContainer}>
+            {mainImage ? (
+              <Image source={{ uri: mainImage.url }} style={styles.mainImage} resizeMode="cover" />
+            ) : (
+              <View style={[styles.mainImagePlaceholder, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="fast-food-outline" size={64} color={colors.primary} />
+                <ThemedText style={{ color: colors.primary, marginTop: 10 }}>Belum ada foto</ThemedText>
+              </View>
+            )}
+          </View>
+
+          {/* Menampilkan thumbnail non-main jika ada */}
+          {otherImages.length > 0 && (
+            <View>
+              <View style={[styles.imageHeader, { marginTop: 15 }]}>
+                <ThemedText style={styles.imageHeaderText}>Foto Lainnya</ThemedText>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer} contentContainerStyle={{ paddingHorizontal: 20 }}>
+                {otherImages.map(img => (
+                  <Image key={img.id} source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="cover" />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
         {/* --- Header Section --- */}
         <View style={styles.headerCard}>
           <View style={styles.statusRow}>
@@ -311,6 +355,19 @@ export default function ProductDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  // --- Style Image Kotak X kali X ---
+  imageSection: { backgroundColor: '#FFF', paddingBottom: 20 },
+  imageHeader: { paddingHorizontal: 20, paddingVertical: 10 },
+  imageHeaderText: { fontSize: 14, fontWeight: 'bold', color: '#666' },
+  
+  mainImageContainer: { alignItems: 'center', marginTop: 5 }, // Posisi di tengah
+  mainImage: { width: 320, height: 320, borderRadius: 12, backgroundColor: '#F0F0F0' }, // Kotak 320x320
+  mainImagePlaceholder: { width: 320, height: 320, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  
+  thumbnailContainer: { marginTop: 5 },
+  thumbnailImage: { width: 70, height: 70, borderRadius: 8, marginRight: 10, borderWidth: 1, borderColor: '#EEE' },
+
   headerCard: { backgroundColor: '#FFF', padding: 20, borderBottomWidth: 1, borderBottomColor: '#EEE' },
   statusRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },

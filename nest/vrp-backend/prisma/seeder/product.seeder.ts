@@ -1,16 +1,13 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable prettier/prettier */
 import { Prisma } from '@prisma/client';
 
 export async function seedProduct(
-  tx: Prisma.TransactionClient, // 👈 Gunakan TransactionClient
+  tx: Prisma.TransactionClient, 
   companyId: string, 
   shiftPagiId: string, 
-  shiftSiangId: string 
+  shiftSiangId: string,
+  depotId: string // 👈 1. Tambahkan parameter depotId di sini
 ) {
   const product1 = await tx.product.create({
     data: {
@@ -22,13 +19,17 @@ export async function seedProduct(
       availableShifts: {
         connect: [{ id: shiftPagiId }, { id: shiftSiangId }] 
       },
+      // 👇 2. WAJIB: Hubungkan produk ini ke Depot
+      availableAt: {
+        connect: [{ id: depotId }]
+      },
       images: {
         create: [
           { 
             url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c', 
             isMain: true, 
             order: 0,
-            companyId: companyId // 👈 WAJIB: Agar ProductImage lolos RLS
+            companyId: companyId 
           }
         ]
       }
@@ -45,13 +46,17 @@ export async function seedProduct(
       availableShifts: {
         connect: [{ id: shiftSiangId }] 
       },
+      // 👇 3. WAJIB: Hubungkan produk ini ke Depot
+      availableAt: {
+        connect: [{ id: depotId }]
+      },
       images: {
         create: [
           { 
             url: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836', 
             isMain: true, 
             order: 0,
-            companyId: companyId // 👈 WAJIB
+            companyId: companyId 
           }
         ]
       }
