@@ -22,13 +22,16 @@ export class PrismaService
     await this.$disconnect();
   }
 
-async withTenant<T>(
+  async withTenant<T>(
   companyId: string,
   fn: (tx: PrismaClient) => Promise<T>,
 ): Promise<T> {
-  return this.$transaction(async (tx: PrismaClient) => {
-   await tx.$executeRawUnsafe(
-      `SET LOCAL app.current_tenant = '${companyId}'`
+  return this.$transaction(async (tx: any) => { 
+    // VVV INI YANG DIUBAH VVV
+    await tx.$executeRawUnsafe(
+      `SET LOCAL app.current_tenant_id = '${companyId}'`
+      //  untuk tes rls
+      // `SET LOCAL app.current_tenant_id = 'dwdadwadawdwad'`
     );
     return fn(tx);
   });

@@ -1,3 +1,4 @@
+ 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,13 +19,13 @@ interface Depot {
 
 export default function ManageDepotScreen() {
   const router = useRouter();
+  const {  role: userRole, logout } = useAuthStore();
   const [depots, setDepots] = useState<Depot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const token = useAuthStore((state) => state.token);
   
-  // 2. Ambil warna dinamis dari Zustand
   const { colors } = useThemeStore();
-  console.log('Colors from themeStore:', colors); // Debug: Pastikan colors sudah terisi dengan benar
+  console.log('Colors from themeStore:', colors); 
 
   const fetchDepots = useCallback(async () => {
     setIsLoading(true);
@@ -94,18 +95,15 @@ export default function ManageDepotScreen() {
         options={{
           title: 'Kelola Depot',
           headerShown: true,
-          headerRight: () => (
-            <TouchableOpacity 
+          headerRight: () => {
+            if(userRole !== 'OWNER') return null; 
+            return (<TouchableOpacity 
               onPress={handleAddDepot}
               style={styles.addButtonHeader}
             >
-              {/* 4. Warna icon tambah di header pakai colors.primary */}
               <Ionicons name="add-circle" size={28} color={colors.primary} />
             </TouchableOpacity>
-          ),
-          // Opsional: Kalau kamu mau warna baris atas headernya ikutan warna primary
-          // headerStyle: { backgroundColor: colors.primary },
-          // headerTintColor: '#fff',
+          )},
         }} 
       />
 

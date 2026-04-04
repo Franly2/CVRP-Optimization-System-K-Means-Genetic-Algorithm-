@@ -5,7 +5,8 @@ import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+// Tambahkan Modal ke import react-native
+import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface DepotItem {
   id: string;
@@ -20,6 +21,20 @@ interface ProductImage {
   order: number;
 }
 
+// --- TAMBAHAN: Interface Shift dan Schedule ---
+interface ShiftItem {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface ScheduleItem {
+  id: string;
+  dayOfWeek: number;
+  menuDetails: string;
+}
+
 interface ProductDetail {
   id: string;
   name: string;
@@ -31,6 +46,8 @@ interface ProductDetail {
   durationDays: number | null;
   availableAt: DepotItem[];
   images?: ProductImage[]; 
+  availableShifts?: ShiftItem[]; // Tambahan
+  schedules?: ScheduleItem[];    // Tambahan
 }
 
 export default function ProductDetailScreen() {
@@ -43,6 +60,15 @@ export default function ProductDetailScreen() {
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- TAMBAHAN STATE MODAL ---
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+
+  const handleOpenImage = (url: string) => {
+    setSelectedImageUrl(url);
+    setModalVisible(true);
+  };
 
   const loadData = useCallback(async (showLoadingSpinner: boolean) => {
     if (showLoadingSpinner) setIsLoading(true);
@@ -121,6 +147,12 @@ export default function ProductDetailScreen() {
     }
   };
 
+  // --- TAMBAHAN: Helper untuk nama hari ---
+  const getDayName = (dayNumber: number) => {
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    return days[dayNumber - 1] || `Hari ke-${dayNumber}`;
+  };
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -151,7 +183,9 @@ export default function ProductDetailScreen() {
           {/* Container gambar utama yang posisinya di tengah dengan ukuran fix kotak */}
           <View style={styles.mainImageContainer}>
             {mainImage ? (
-              <Image source={{ uri: mainImage.url }} style={styles.mainImage} resizeMode="cover" />
+              <TouchableOpacity onPress={() => handleOpenImage(mainImage.url)} activeOpacity={0.9}>
+                <Image source={{ uri: mainImage.url }} style={styles.mainImage} resizeMode="cover" />
+              </TouchableOpacity>
             ) : (
               <View style={[styles.mainImagePlaceholder, { backgroundColor: colors.primary + '15' }]}>
                 <Ionicons name="fast-food-outline" size={64} color={colors.primary} />
@@ -168,7 +202,9 @@ export default function ProductDetailScreen() {
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer} contentContainerStyle={{ paddingHorizontal: 20 }}>
                 {otherImages.map(img => (
-                  <Image key={img.id} source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="cover" />
+                  <TouchableOpacity key={img.id} onPress={() => handleOpenImage(img.url)} activeOpacity={0.7}>
+                    <Image source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="cover" />
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
@@ -312,6 +348,39 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
+        {/* --- TAMBAHAN: Shifts Section --- */}
+        {product.availableShifts && product.availableShifts.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Jam Pengiriman (Shift)</ThemedText>
+            {product.availableShifts.map((shift) => (
+              <View key={shift.id} style={styles.shiftCard}>
+                <View style={[styles.shiftIcon, { backgroundColor: colors.primary + '15' }]}>
+                  <Ionicons name="time" size={20} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <ThemedText style={styles.shiftName}>{shift.name}</ThemedText>
+                  <ThemedText style={styles.shiftTime}>{shift.startTime} - {shift.endTime}</ThemedText>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* --- TAMBAHAN: Schedules Section (Hanya untuk Katering) --- */}
+        {product.isSubscription && product.schedules && product.schedules.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Jadwal Menu Harian</ThemedText>
+            {product.schedules.map((schedule) => (
+              <View key={schedule.id} style={styles.scheduleCard}>
+                <View style={[styles.dayBadge, { backgroundColor: colors.primary }]}>
+                  <ThemedText style={styles.dayBadgeText}>{getDayName(schedule.dayOfWeek)}</ThemedText>
+                </View>
+                <ThemedText style={styles.menuDetails}>{schedule.menuDetails}</ThemedText>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* --- Depots Section --- */}
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Tersedia di Depot</ThemedText>
@@ -348,6 +417,32 @@ export default function ProductDetailScreen() {
           <ThemedText style={styles.buttonText}>Edit Produk</ThemedText>
         </TouchableOpacity>
       </View>
+
+      {/* --- TAMBAHAN: MODAL ZOOM GAMBAR --- */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalCloseButton} 
+            onPress={() => setModalVisible(false)}
+          >
+            <Ionicons name="close-circle" size={40} color="#FFF" />
+          </TouchableOpacity>
+          
+          {selectedImageUrl && (
+            <Image 
+              source={{ uri: selectedImageUrl }} 
+              style={styles.fullImage} 
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
+
     </ThemedView>
   );
 }
@@ -361,8 +456,8 @@ const styles = StyleSheet.create({
   imageHeader: { paddingHorizontal: 20, paddingVertical: 10 },
   imageHeaderText: { fontSize: 14, fontWeight: 'bold', color: '#666' },
   
-  mainImageContainer: { alignItems: 'center', marginTop: 5 }, // Posisi di tengah
-  mainImage: { width: 320, height: 320, borderRadius: 12, backgroundColor: '#F0F0F0' }, // Kotak 320x320
+  mainImageContainer: { alignItems: 'center', marginTop: 5 }, 
+  mainImage: { width: 320, height: 320, borderRadius: 12, backgroundColor: '#F0F0F0' }, 
   mainImagePlaceholder: { width: 320, height: 320, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   
   thumbnailContainer: { marginTop: 5 },
@@ -382,6 +477,19 @@ const styles = StyleSheet.create({
   specBox: { flex: 1, backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
   specLabel: { fontSize: 12, color: '#888', marginTop: 5 },
   specValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  
+  // --- TAMBAHAN STYLE SHIFT ---
+  shiftCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
+  shiftIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  shiftName: { fontSize: 15, fontWeight: 'bold', color: '#333' },
+  shiftTime: { fontSize: 13, color: '#666', marginTop: 4 },
+
+  // --- TAMBAHAN STYLE SCHEDULE ---
+  scheduleCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
+  dayBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginBottom: 10 },
+  dayBadgeText: { fontSize: 12, fontWeight: 'bold', color: '#FFF' },
+  menuDetails: { fontSize: 14, color: '#444', lineHeight: 22 },
+
   depotCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
   depotIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   depotName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
@@ -431,5 +539,22 @@ const styles = StyleSheet.create({
     color: '#666', 
     marginBottom: 8, 
     fontWeight: '600'
-  }
+  },
+  // --- STYLE TAMBAHAN MODAL ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  fullImage: {
+    width: '100%',
+    height: '80%',
+  },
 });

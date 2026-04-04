@@ -6,6 +6,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AddProductDto } from 'src/catalog/dto/addProduct.dto';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { ProductStatus } from '@prisma/client';
+import { addShiftDto } from './dto/addShift.dto';
 
 @UseGuards(JwtAuthGuard )
 @Controller('catalog')
@@ -23,6 +24,24 @@ export class CatalogController {
       }
 
       return await this.catalogService.createProduct(companyId, role, dto);
+    }
+
+    @Post('shift')
+    async addShift(
+      @Body() dto: addShiftDto,
+      @GetUser('companyId') companyId: string,
+      @GetUser('role') role: string
+    ) {
+      if (role !== 'OWNER' && role !== 'ADMIN') {
+        throw new ForbiddenException('Hanya Owner atau Admin yang boleh menambah shift pengiriman.');
+      }
+
+      return await this.catalogService.createShift(companyId, dto);
+    }
+
+    @Get('shifts')
+    async getAllShifts(@GetUser('companyId') companyId: string) {
+      return await this.catalogService.getAllShifts(companyId);
     }
 
   @Patch('/:id/status')

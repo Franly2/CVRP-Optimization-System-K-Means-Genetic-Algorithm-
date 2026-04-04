@@ -1,4 +1,8 @@
 /* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable prettier/prettier */
 /* eslint-disable prettier/prettier */
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
@@ -65,6 +69,39 @@ export class DepotService {
     }
   }
 
+  // buat tes rls aja
+  // async getAllDepots(companyId: string) {
+  //   try {
+  //     return await this.prisma.withTenant(companyId, async (tx) => {
+        
+  //       // Sengaja HAPUS filter 'where: { companyId }' untuk ngetes RLS
+  //       // Setara dengan: SELECT * FROM "Depot" ORDER BY "name" ASC;
+  //       const depots = await tx.depot.findMany({
+  //         orderBy: {
+  //           name: 'asc' 
+  //         }
+  //       });
+
+  //       // Tampilkan hasilnya di terminal backend (NestJS)
+  //       console.log('--- TEST RLS DEPOT ---');
+  //       console.log(`Company ID dari Token : ${companyId}`);
+  //       console.log(`Jumlah Depot Didapat  : ${depots.length}`);
+  //       console.log('Data Detail           :', JSON.stringify(depots, null, 2));
+  //       console.log('----------------------');
+
+  //       return {
+  //         status: 'success',
+  //         message: 'Berhasil mengambil data depot',
+  //         data: depots,
+  //       };
+        
+  //     });
+  //   } catch (error) {
+  //     console.error('ERROR GET DEPOTS:', error);
+  //     throw new InternalServerErrorException('Terjadi kesalahan saat mengambil data depot.');
+  //   }
+  // }
+
     async getDepotById(companyId: string, depotId: string) {
     try {
       return await this.prisma.withTenant(companyId, async (tx) => {
@@ -109,6 +146,42 @@ export class DepotService {
       
       console.error('ERROR GET DEPOT BY ID:', error);
       throw new InternalServerErrorException('Terjadi kesalahan saat mengambil detail depot.');
+    }
+  }
+
+  async testGetAllProductsRLS(companyId: string) {
+    try {
+      return await this.prisma.withTenant(companyId, async (tx) => {
+        
+        // Sengaja TIDAK ADA filter 'where: { companyId }' untuk ngetes RLS
+        // Setara dengan: SELECT * FROM "Product";
+        const products = await tx.product.findMany({
+          // Include ditambahkan agar kita bisa melihat datanya utuh (opsional)
+          include: {
+            images: true,
+          },
+          orderBy: {
+            createdAt: 'desc' 
+          }
+        });
+
+        // Tampilkan hasilnya di terminal backend (NestJS)
+        console.log('--- TEST RLS PRODUCT ---');
+        console.log(`Company ID dari Token : ${companyId}`);
+        console.log(`Jumlah Produk Didapat : ${products.length}`);
+        console.log('Data Detail           :', JSON.stringify(products, null, 2));
+        console.log('------------------------');
+
+        return {
+          status: 'success',
+          message: 'Berhasil test RLS Product',
+          data: products,
+        };
+        
+      });
+    } catch (error) {
+      console.error('ERROR TEST RLS PRODUCTS:', error);
+      throw new InternalServerErrorException('Terjadi kesalahan saat test RLS produk.');
     }
   }
 

@@ -52,4 +52,13 @@ export class DepotController {
       }
       return await this.depotService.updateDepot(companyId, id, dto);
     }
+
+    // untuk tes RLS testGetAllProductsRLS
+    @Get('test-rls/products')
+    async testGetAllProductsRLS(
+      @GetUser('companyId') companyId: string,
+    ) {
+      // Pastikan fungsi ini sudah kamu buat di DepotService
+      return await this.depotService.testGetAllProductsRLS(companyId);
+    }
 }

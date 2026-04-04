@@ -72,3 +72,58 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
 GRANT USAGE, SELECT ON SEQUENCES TO app_user;
+
+
+buat update grant
+-- 1. Berikan kembali akses ke skema public yang baru dibuat ulang oleh Prisma
+GRANT USAGE ON SCHEMA public TO app_user;
+
+-- 2. Berikan akses ke semua tabel yang ada saat ini
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user;
+
+-- 3. Berikan akses ke sequence (penting untuk UUID / Auto Increment)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
+
+
+
+DO $$ 
+DECLARE 
+    tenant_tables text[] := ARRAY[
+        'DriverLocation',
+        'Vehicle',
+        'Package',
+        'Route',
+        'User',
+        'Product',
+        'ProductImage',
+        'Order',
+        'OrderItem',
+        'DeliveryShift',
+        'Subscription',
+        'ProductSchedule',
+        'CartItem',
+        'Depot'
+    ];
+    t_name text;
+BEGIN 
+    FOREACH t_name IN ARRAY tenant_tables 
+    LOOP 
+        -- 1. Mengaktifkan RLS (Tanda kutip di sekitar %I dihapus)
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', t_name);
+        
+        -- 2. Memaksa RLS berlaku untuk Table Owner (app_user)
+        EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY;', t_name);
+        
+        -- 3. Hapus policy lama jika sudah ada
+        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I;', t_name);
+        
+        -- 4. Buat Policy baru khusus ditargetkan ke app_user
+        EXECUTE format(
+            'CREATE POLICY tenant_isolation_policy ON %I 
+             FOR ALL 
+             TO app_user 
+             USING ("companyId"::text = current_setting(''app.current_tenant_id'', true));', 
+            t_name
+        );
+    END LOOP; 
+END $$;
