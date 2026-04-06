@@ -6,7 +6,7 @@ import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../../store/authStore';
-import { useThemeStore } from '../../store/themeStore'; // 1. Import themeStore
+import { useThemeStore } from '../../store/themeStore';
 
 interface Depot {
   id: string;
@@ -109,7 +109,6 @@ export default function ManageDepotScreen() {
 
       {isLoading ? (
         <View style={styles.centerContent}>
-          {/* 5. Warna loading indicator pakai colors.primary */}
           <ActivityIndicator size="large" color={colors.primary} />
           <ThemedText style={{ marginTop: 10 }}>Memuat data depot...</ThemedText>
         </View>
@@ -117,7 +116,6 @@ export default function ManageDepotScreen() {
         <View style={styles.centerContent}>
           <Ionicons name="business-outline" size={64} color="#ccc" />
           <ThemedText style={styles.emptyText}>Belum ada depot yang terdaftar.</ThemedText>
-          {/* 6. Tombol tambah depot pertama pakai colors.primary untuk background-nya */}
           <TouchableOpacity 
             style={[styles.addPrimaryButton, { backgroundColor: colors.primary }]} 
             onPress={handleAddDepot}

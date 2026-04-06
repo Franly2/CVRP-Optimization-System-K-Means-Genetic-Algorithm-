@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useThemeStore } from '../../store/themeStore'; // Pastikan path store sesuai
+import { useThemeStore } from '../../store/themeStore';
 import { ThemedText } from "../themed-text";
 import { IconSymbol } from "../ui/icon-symbol.ios";
 
@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 20,
     borderRadius: 12,
-    // Jika ingin container mengikuti dark mode, ganti '#fff' dengan warna dari theme
   },
   title: {
     marginBottom: 15,
@@ -58,7 +57,7 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     flexDirection: 'row',
-    gap: 12, // Sedikit lebih kecil agar 3 kolom muat dengan baik
+    gap: 12, 
   },
   menuCard: {
     flex: 1,

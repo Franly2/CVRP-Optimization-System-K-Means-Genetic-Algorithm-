@@ -15,8 +15,9 @@ import { PrismaService } from 'prisma/prisma.service';
 export class AuthController {
   constructor(private readonly authService: AuthService, private readonly prisma: PrismaService) {}
 
-  @Get('branding/:slug') // PUBLIC 
+  @Get('branding/:slug') 
   async getPublicBranding(@Param('slug') slug: string) {
+    console.log(`Menerima permintaan untuk mendapatkan branding dengan slug: ${slug}`);
     return await this.authService.getBrandingBySlug(slug);
   }
 
@@ -37,17 +38,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@GetUser() userPayload: any): Promise<any> { 
+    console.log(`Menerima permintaan profil untuk user ID: ${userPayload.userId} dari company ID: ${userPayload.companyId}`);
     const result = await this.prisma.withTenant(userPayload.companyId, async (tx) => {
-
-      // const dbSetting = await tx.$queryRaw`
-      //   SELECT current_setting('app.current_tenant', true) as tenant
-      // `;
-      // console.log('ID Tenant di Sesi Postgres:', dbSetting);
-      // console.log('ID Tenant dari JWT:', userPayload.companyId);
-
-      // const allCompaniesRLS = await tx.company.findMany();
-      // console.log(`[DENGAN RLS] Jumlah perusahaan yang terlihat: ${allCompaniesRLS.length}`);
-
       const fullUser = await tx.user.findUnique({
         where: { id: userPayload.userId },
         omit: { password: true },

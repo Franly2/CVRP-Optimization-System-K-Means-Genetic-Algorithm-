@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-import { useThemeStore } from '@/store/themeStore'; // 1. Import Theme Store
+import { useThemeStore } from '@/store/themeStore';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -10,7 +10,6 @@ export default function AddStaffScreen() {
   const router = useRouter();
   const { depotId } = useLocalSearchParams(); 
 
-  // Ambil warna dinamis
   const { colors } = useThemeStore();
 
   const [role, setRole] = useState<'ADMIN' | 'DRIVER'>('ADMIN');
@@ -88,8 +87,6 @@ export default function AddStaffScreen() {
       <Stack.Screen options={{ title: 'Tambah Staf Baru', headerShown: true, }} />
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        
-        {/* Toggle Pilihan Role (Warna Dinamis) */}
         <View style={styles.roleToggleContainer}>
           <TouchableOpacity 
             style={[styles.roleButton, role === 'ADMIN' && { backgroundColor: colors.primary }]}
@@ -128,7 +125,6 @@ export default function AddStaffScreen() {
             </View>
           </View>
 
-          {/* Form Tambahan Khusus Driver */}
           {role === 'DRIVER' && (
             <View style={styles.driverSection}>
               <View style={styles.divider} />
@@ -197,7 +193,6 @@ const styles = StyleSheet.create({
   scrollContainer: { padding: 20, paddingBottom: 40 },
   roleToggleContainer: { flexDirection: 'row', backgroundColor: '#E0E0E0', borderRadius: 10, padding: 4, marginBottom: 20 },
   roleButton: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8 },
-  // roleButtonActive dihapus karena warnanya dinamis di elemen
   roleText: { color: '#666', fontWeight: 'bold' },
   roleTextActive: { color: '#FFF' },
   card: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },

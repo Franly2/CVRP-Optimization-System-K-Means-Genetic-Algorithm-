@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "FranlySaaSApp",
-    "slug": "franly-saas-app",
+    "name": "ORBIS",
+    "slug": "orbis",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "franlysaasapp",
+    "scheme": "orbis",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.franly.saasapp"
+      "bundleIdentifier": "com.orbis",
     },
     "android": {
       "adaptiveIcon": {
@@ -21,11 +21,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.franly.saasapp"
+      "package": "com.orbis"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "shortName": "orbis"
     },
     "plugins": [
       "expo-router",

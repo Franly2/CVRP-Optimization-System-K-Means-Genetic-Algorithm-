@@ -13,7 +13,6 @@ interface OrderItem { id: string; status: string; totalPrice: number; deliveryAd
 interface PackageItem { id: string; recipientName: string; status: string; weight: number; volume: number; }
 interface RouteItem { id: string; status: string; date: string; }
 
-// --- UPDATE INTERFACE PRODUCT ITEM ---
 interface ProductImage { id: string; url: string; isMain: boolean; }
 interface ProductItem { 
   id: string; 
@@ -23,7 +22,7 @@ interface ProductItem {
   volumeEst: number; 
   isSubscription: boolean;
   status: string; 
-  images?: ProductImage[]; // Tambahkan properti images
+  images?: ProductImage[]; 
 }
 
 interface DepotDetail {
@@ -313,7 +312,6 @@ export default function DepotDetailScreen() {
                       onPress={() => router.push(`/product/${p.id}`)}
                       activeOpacity={0.7}
                     >
-                      {/* --- TAMPILKAN GAMBAR JIKA ADA, IKON JIKA TIDAK --- */}
                       <View style={[styles.productIconContainer, mainImage && { backgroundColor: 'transparent' }]}>
                         {mainImage ? (
                           <Image 
@@ -563,7 +561,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
-    overflow: 'hidden', // Penting agar gambar tidak keluar dari radius
+    overflow: 'hidden',
   },
   productImage: {
     width: '100%',

@@ -1,5 +1,4 @@
-// File: app/maps.tsx
-import MapComponent from '@/components/MapComponent'; // Import fallback untuk web
+import MapComponent from '@/components/MapComponent';
 import React from 'react';
 
 export default function MapScreen() {

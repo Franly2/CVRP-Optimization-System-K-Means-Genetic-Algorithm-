@@ -5,7 +5,6 @@ import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-// Tambahkan Modal ke import react-native
 import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface DepotItem {
@@ -21,7 +20,6 @@ interface ProductImage {
   order: number;
 }
 
-// --- TAMBAHAN: Interface Shift dan Schedule ---
 interface ShiftItem {
   id: string;
   name: string;
@@ -180,7 +178,6 @@ export default function ProductDetailScreen() {
              <ThemedText style={styles.imageHeaderText}>Foto Utama</ThemedText>
           </View>
           
-          {/* Container gambar utama yang posisinya di tengah dengan ukuran fix kotak */}
           <View style={styles.mainImageContainer}>
             {mainImage ? (
               <TouchableOpacity onPress={() => handleOpenImage(mainImage.url)} activeOpacity={0.9}>
@@ -194,7 +191,6 @@ export default function ProductDetailScreen() {
             )}
           </View>
 
-          {/* Menampilkan thumbnail non-main jika ada */}
           {otherImages.length > 0 && (
             <View>
               <View style={[styles.imageHeader, { marginTop: 15 }]}>
@@ -348,7 +344,7 @@ export default function ProductDetailScreen() {
           </View>
         </View>
 
-        {/* --- TAMBAHAN: Shifts Section --- */}
+        {/* --- Shifts Section --- */}
         {product.availableShifts && product.availableShifts.length > 0 && (
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Jam Pengiriman (Shift)</ThemedText>
@@ -451,7 +447,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // --- Style Image Kotak X kali X ---
   imageSection: { backgroundColor: '#FFF', paddingBottom: 20 },
   imageHeader: { paddingHorizontal: 20, paddingVertical: 10 },
   imageHeaderText: { fontSize: 14, fontWeight: 'bold', color: '#666' },
@@ -478,13 +473,11 @@ const styles = StyleSheet.create({
   specLabel: { fontSize: 12, color: '#888', marginTop: 5 },
   specValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   
-  // --- TAMBAHAN STYLE SHIFT ---
   shiftCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
   shiftIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   shiftName: { fontSize: 15, fontWeight: 'bold', color: '#333' },
   shiftTime: { fontSize: 13, color: '#666', marginTop: 4 },
 
-  // --- TAMBAHAN STYLE SCHEDULE ---
   scheduleCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
   dayBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginBottom: 10 },
   dayBadgeText: { fontSize: 12, fontWeight: 'bold', color: '#FFF' },
@@ -540,7 +533,6 @@ const styles = StyleSheet.create({
     marginBottom: 8, 
     fontWeight: '600'
   },
-  // --- STYLE TAMBAHAN MODAL ---
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',

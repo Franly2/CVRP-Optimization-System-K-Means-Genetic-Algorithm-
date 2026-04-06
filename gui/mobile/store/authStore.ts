@@ -16,16 +16,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   role: null,
   username: null,
-  isLoading: true, // Sedang mengecek AsyncStorage saat pertama kali buka app
+  isLoading: true, // cek auth saat aplikasi pertama kali dibuka
 
   login: async (token, role, username) => {
-    // simpan ke AsyncStorage
     await AsyncStorage.multiSet([
       ['userToken', token],
       ['userRole', role],
       ['userName', username],
     ]);
-    // simpna ke zustand
     set({ token, role, username });
   },
 

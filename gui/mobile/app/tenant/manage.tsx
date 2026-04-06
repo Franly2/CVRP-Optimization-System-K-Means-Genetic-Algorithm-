@@ -94,20 +94,15 @@ export default function ManageTenantScreen() {
 
   const updateBranding = async () => {
     let newErrors: Record<string, string> = {};
-
-    // --- Validasi Frontend Ringan ---
-    
-    // 1. Cek Nama
     if (!editForm.name || String(editForm.name).trim() === '') {
       newErrors.name = 'Nama perusahaan tidak boleh kosong';
     }
 
-    // 2. Cek Industri (TAMBAHKAN INI)
     if (!editForm.industry || String(editForm.industry).trim() === '') {
       newErrors.industry = 'Industri tidak boleh kosong';
     }
 
-    // 3. Cek Format Warna (TAMBAHKAN INI)
+    //Cek Format Warna
     const hexColorRegex = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i;
     if (editForm.colorPrimary && !hexColorRegex.test(String(editForm.colorPrimary).trim())) {
       newErrors.colorPrimary = 'Warna utama harus format hex (contoh: #1976D2)';
@@ -119,7 +114,7 @@ export default function ManageTenantScreen() {
       newErrors.colorTertiary = 'Warna tersier harus format hex (contoh: #4CAF50)';
     }
 
-    // 4. Cek Format URL Logo (TAMBAHKAN INI)
+    // Cek Format URL Logo 
     if (editForm.logoUrl && String(editForm.logoUrl).trim() !== '') {
       try {
         new URL(String(editForm.logoUrl).trim());
@@ -127,7 +122,7 @@ export default function ManageTenantScreen() {
         newErrors.logoUrl = 'URL logo tidak valid';
       }
     }
-    // 3. Jika ada salah satu atau lebih error, tampilkan semua dan hentikan proses
+    // kalo ada error, set ke state dan jangan lanjut ke API
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return; 
@@ -160,9 +155,7 @@ export default function ManageTenantScreen() {
         setIsModalVisible(false);
         fetchBranding(); 
       } else {
-        // ========================================================
-        // PENANGANAN ERROR BALASAN API (ARRAY OF STRINGS)
-        // ========================================================
+        // PRINT ERROR BALASAN API (ARRAY OF STRINGS)
         if (result.message && Array.isArray(result.message)) {
           let backendErrors: Record<string, string> = {};
           
@@ -170,7 +163,6 @@ export default function ManageTenantScreen() {
             const lowerMsg = msg.toLowerCase();
             let fieldKey = '';
             
-            // Map pesan error ke nama state form
             if (lowerMsg.includes('nama perusahaan')) fieldKey = 'name';
             else if (lowerMsg.includes('industri')) fieldKey = 'industry';
             else if (lowerMsg.includes('url logo') || lowerMsg.includes('logo')) fieldKey = 'logoUrl';
@@ -192,7 +184,6 @@ export default function ManageTenantScreen() {
             setErrors(backendErrors);
           }
         } else if (typeof result.message === 'string') {
-          // Tangani jika error API berupa string tunggal, bukan array
           Alert.alert('Gagal', result.message);
         } else {
           Alert.alert('Gagal', 'Terjadi kesalahan pada server');
@@ -396,7 +387,6 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   label: { fontSize: 12, fontWeight: 'bold', color: '#666', marginBottom: 6, marginTop: 12 },
   
-  // Style untuk Error State
   input: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, color: '#333', borderWidth: 1, borderColor: '#EEE' },
   inputError: { borderColor: '#DC3545', backgroundColor: '#FFF8F8' },
   errorText: { color: '#DC3545', fontSize: 11, marginTop: 4, marginLeft: 2, lineHeight: 16 }, 

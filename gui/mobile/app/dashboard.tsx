@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../store/authStore';
-import { useThemeStore } from '../store/themeStore'; // Pastikan path ini sesuai dengan letak file kamu
+import { useThemeStore } from '../store/themeStore';
 
 export default function DashboardScreen() {
   const { username: userName, role: userRole, logout } = useAuthStore();
@@ -49,7 +49,7 @@ export default function DashboardScreen() {
       case 'DRIVER':
         return <DriverDashboard userName={userName || 'Kurir'} />;
       default:
-        // Loading indicator sekarang warnanya dinamis sesuai tema perusahaan
+        // Role belum teridentifikasi, tampilkan loading
         return <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />;
     }
   };
@@ -67,16 +67,15 @@ export default function DashboardScreen() {
           ),
         }} 
       />
-      {/* Background warna di sini langsung memakai warna Primary dari Zustand */}
       <View style={[styles.card, { backgroundColor: colors.primary }]}>
         <View style={styles.profileCircle}>
           {logoUrl ? (
             <Image 
-              key={logoUrl} // 1. Ini memaksa React merender ulang jika URL berubah
-              source={{ uri: logoUrl.trim() }} // 2. Membersihkan karakter spasi tak terlihat
+              key={logoUrl} // render ulang otomatis jika logoUrl berubah
+              source={{ uri: logoUrl.trim() }} // hapus spasi yang tidak perlu agar URL valid
               style={styles.logoImage} 
               resizeMode="cover"
-              // 3. Jika gambar gagal dimuat (broken link), kita biarkan kosong agar tidak crash
+              // kalo gambar gagal dimuat (misal URL salah), fallback ke inisial nama
               onError={(e) => console.log('Gagal memuat gambar logo', e.nativeEvent.error)}
             />
           ) : (
@@ -131,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden', // Sangat penting agar gambar logo yang kotak bisa terpotong melingkar
+    overflow: 'hidden',// biar gambar tidak keluar dari lingkaran
   },
   logoImage: {
     width: 60,

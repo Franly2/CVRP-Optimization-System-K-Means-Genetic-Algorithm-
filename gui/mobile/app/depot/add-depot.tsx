@@ -1,8 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
-// 1. IMPORT THEME STORE
-import { useThemeStore } from '@/store/themeStore'; // Sesuaikan path jika berbeda
+import { useThemeStore } from '@/store/themeStore';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -16,7 +15,6 @@ export default function AddDepotScreen() {
   const [lng, setLng] = useState('');
   const token = useAuthStore((state) => state.token);
   
-  // 2. AMBIL WARNA DARI TEMA
   const { colors } = useThemeStore();
   
   const [isLoading, setIsLoading] = useState(false);

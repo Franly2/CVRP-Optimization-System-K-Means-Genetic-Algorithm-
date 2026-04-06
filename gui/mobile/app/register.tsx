@@ -11,7 +11,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [birthDate, setBirthDate] = useState(''); //  YYYY-MM-DD
+  const [birthDate, setBirthDate] = useState(''); 
   const [isAdmin, setIsAdmin] = useState(false);
   
   const [vehicleType, setVehicleType] = useState('');
@@ -42,7 +42,7 @@ export default function RegisterScreen() {
           
           fullName: fullName,
           phoneNumber: phoneNumber,
-          birthDate: birthDate, //YYYY-MM-DD
+          birthDate: birthDate, 
           
           vehicleType: vehicleType,
           plateNumber: plateNumber,

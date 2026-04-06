@@ -4,24 +4,23 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 export default function HomeScreen() {
   const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
-  const router = useRouter();
   const { companySlug } = useLocalSearchParams(); 
   
   const loginZustand = useAuthStore((state) => state.login);
@@ -33,99 +32,41 @@ export default function HomeScreen() {
   const [errorMessage, setErrorMessage] = React.useState('');
   const [companyName, setCompanyName] = useState('Workspace');
 
-//   useEffect(() => {
-//   const loadPublicBranding = async (slug: string) => {
-//     try {
-//       const response = await fetch(`http://${api_address}:3000/auth/branding/${slug}`);
-//       const result = await response.json();
+  useEffect(() => {
+    if(!companySlug) return;
+      const loadPublicBranding = async (slug: string) => {
+        try {
+          const response = await fetch(`http://${api_address}:3000/auth/branding/${slug}`);
+          const result = await response.json();
 
-//       if (response.ok && result.data) {
-//         setCompanyName(result.data.name);
+          if (response.ok && result.data) {
+            setCompanyName(result.data.name);
 
-//         await setBranding({
-//           logoUrl: result.data.logoUrl,
-//           colorPrimary: result.data.colorPrimary,
-//           colorSecondary: result.data.colorSecondary,
-//           colorTertiary: result.data.colorTertiary,
-//         });
-//       }
-//     } catch (error) {
-//       console.log("Gagal memuat branding:", error);
-//     }
-//   };
+            // await setBranding({
+            //   ...result.data.branding
+            // });
 
-//   if (companySlug) {
-//     loadPublicBranding(companySlug.toString());
-//   }
-// }, [companySlug]);
-
-//   async function login() {
-//     const activeSlug = companySlug?.toString() || '';
-//     if (!activeSlug) return;
-
-//     setIsLoading(true);
-//     setErrorMessage('');
-
-//     try {
-//       const response = await fetch(`http://${api_address}:3000/auth/${activeSlug}/login`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ username, password }),
-//       });
-
-//       const data = await response.json();
-
-//       if (response.ok) {
-//         await loginZustand(data.access_token, data.role, data.username);
-//         if (data.branding) await setBranding(data.branding);
-//       } else {
-//         setErrorMessage(data.message || 'Kredensial salah');
-//       }
-//     } catch (error) {
-//       Alert.alert('Error', 'Gagal terhubung ke server.');
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }
-
-useEffect(() => {
-    const loadPublicBranding = async (slug: string) => {
-      try {
-        const response = await fetch(`http://${api_address}:3000/auth/branding/${slug}`);
-        const result = await response.json();
-
-        if (response.ok && result.data) {
-          setCompanyName(result.data.name);
-
-          await setBranding({
-            logoUrl: result.data.logoUrl,
-            colorPrimary: result.data.colorPrimary,
-            colorSecondary: result.data.colorSecondary,
-            colorTertiary: result.data.colorTertiary,
-          });
-
-          // JANGAN LUPA BARIS INI: 
-          // Simpan slug ke storage supaya kalau app di-restart, 
-          // index.tsx tahu harus redirect ke mana.
-        //   await AsyncStorage.setItem('lastVisitedTenant', slug);
+            await setBranding({
+              logoUrl: result.data.logoUrl,
+              colorPrimary: result.data.colorPrimary,
+              colorSecondary: result.data.colorSecondary,
+              colorTertiary: result.data.colorTertiary,
+            });
+          }
+        } catch (error) {
+          console.log("Gagal memuat branding:", error);
         }
-      } catch (error) {
-        console.log("Gagal memuat branding:", error);
-      }
-    };
+      };
 
-    if (companySlug) {
       loadPublicBranding(companySlug.toString());
-    }
-  }, [companySlug]);
+    }, [companySlug]);
 
-async function login() {
+  async function login() {
     const activeSlug = companySlug?.toString() || '';
     if (!activeSlug) return;
 
     setIsLoading(true);
     setErrorMessage('');
-
     try {
       const response = await fetch(`http://${api_address}:3000/auth/${activeSlug}/login`, {
         method: 'POST',
@@ -136,16 +77,14 @@ async function login() {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. Simpan slug ke memori karena login sudah dipastikan sukses
-        // Ini memastikan saat user buka app lagi, dia lari ke tenant yang VALID
+        // simpan ke storage slug  lastvisited untuk memastikan saat user buka app lagi, dia lari ke tenant yang VALID
         await AsyncStorage.setItem('lastVisitedTenant', activeSlug);
-
-        // 2. Jalankan proses login store
+        // simpan token, role, dan username ke Zustand
         await loginZustand(data.access_token, data.role, data.username);
-        
+        // jika response login juga mengembalikan data branding, langsung set ke Zustand agar tema berubah otomatis
         if (data.branding) await setBranding(data.branding);
 
-        // Navigation biasanya ditangani oleh RootLayout yang mendeteksi perubahan token
+        //navigasi dihandle otomatis oleh _layout.tsx yang akan redirect ke dashboard kalau sudah login
       } else {
         setErrorMessage(data.message || 'Kredensial salah');
       }
@@ -162,7 +101,6 @@ async function login() {
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           
           <View style={styles.headerSection}>
-            {/* LOGO/IKON TAMPIL LANGSUNG TANPA BOX */}
             <View style={styles.logoWrapper}>
               {logoUrl ? (
                 <Image source={{ uri: logoUrl }} style={styles.logo} resizeMode="contain" />
@@ -239,7 +177,6 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 40 },
   headerSection: { marginBottom: 40 },
   
-  // Wrapper sederhana tanpa background/box warna
   logoWrapper: {
     marginBottom: 20,
     alignItems: 'flex-start',

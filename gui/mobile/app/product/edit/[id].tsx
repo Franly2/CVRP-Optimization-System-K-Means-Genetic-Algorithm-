@@ -41,7 +41,6 @@ export default function EditProductScreen() {
   const token = useAuthStore((state) => state.token);
   const { colors } = useThemeStore();
 
-  // --- FORM STATE ---
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [weight, setWeight] = useState('');
@@ -49,11 +48,9 @@ export default function EditProductScreen() {
   const [isSub, setIsSub] = useState(false);
   const [duration, setDuration] = useState('');
   
-  // --- IMAGE STATE ---
   const [mainImageUrl, setMainImageUrl] = useState('');
   const [otherImageUrls, setOtherImageUrls] = useState<string[]>(['']);
 
-  // --- SELECTION STATE ---
   const [allDepots, setAllDepots] = useState<DepotOption[]>([]);
   const [selectedDepots, setSelectedDepots] = useState<string[]>([]);
   const [allShifts, setAllShifts] = useState<ShiftOption[]>([]);
@@ -187,8 +184,6 @@ export default function EditProductScreen() {
         <View style={styles.center}><ActivityIndicator color={colors.primary} size="large" /></View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
-          
-          {/* --- Image Section --- */}
           <View style={styles.section}>
             <ThemedText style={styles.label}>URL Foto Utama</ThemedText>
             <TextInput 
@@ -300,7 +295,7 @@ export default function EditProductScreen() {
             </View>
           )}
 
-          {/* --- BAGIAN YANG TADI HILANG: Depot Section --- */}
+          {/* --- Depot Section --- */}
           <View style={styles.section}>
             <ThemedText style={styles.label}>Tersedia di Depot Mana Saja?</ThemedText>
             <View style={styles.grid}>

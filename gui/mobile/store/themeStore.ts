@@ -23,17 +23,16 @@ export const useThemeStore = create<ThemeState>((set) => ({
   isThemeLoading: true,
 
   setBranding: async (branding) => {
-    // Siapkan warna baru (kalau null/kosong, pakai default)
     const newColors = {
       primary: branding.colorPrimary || DEFAULT_THEME.colors.primary,
       secondary: branding.colorSecondary || DEFAULT_THEME.colors.secondary,
       tertiary: branding.colorTertiary || DEFAULT_THEME.colors.tertiary,
-      background: DEFAULT_THEME.colors.background, // Tetap default
-      text: DEFAULT_THEME.colors.text,             // Tetap default
+      background: DEFAULT_THEME.colors.background,  //tetap
+      text: DEFAULT_THEME.colors.text,          //tetap
     };
     const newLogoUrl = branding.logoUrl || null;
 
-    // 1. Simpan ke AsyncStorage secara manual (seperti authStore)
+    // Simpan ke AsyncStorage secara manual (seperti authStore)
     await AsyncStorage.setItem('tenantColors', JSON.stringify(newColors));
     if (newLogoUrl) {
       await AsyncStorage.setItem('tenantLogo', newLogoUrl);

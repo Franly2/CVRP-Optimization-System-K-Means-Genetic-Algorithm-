@@ -17,8 +17,8 @@ export default function EditDepotScreen() {
   const [lat, setLat] = useState(initialLat?.toString() || '');
   const [lng, setLng] = useState(initialLng?.toString() || '');
   
-  const [isLoading, setIsLoading] = useState(true); // Loading saat fetch data awal
-  const [isUpdating, setIsUpdating] = useState(false); // Loading saat proses simpan
+  const [isLoading, setIsLoading] = useState(true); 
+  const [isUpdating, setIsUpdating] = useState(false); 
 
   const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
 
@@ -57,7 +57,6 @@ export default function EditDepotScreen() {
     return;
   }
 
-  // Bersihkan input dan pastikan tipe Number
   const latNum = Number(lat.toString().replace(',', '.'));
   const lngNum = Number(lng.toString().replace(',', '.'));
 
@@ -90,7 +89,7 @@ export default function EditDepotScreen() {
       Alert.alert('Berhasil', 'Data depot berhasil diperbarui!');
       router.back();
     } else {
-      console.log("Server Error Response:", result); // Lihat di console vscode
+      console.log("Server Error Response:", result); 
       Alert.alert('Gagal', result.message || 'Terjadi kesalahan server.');
     }
   } catch (error) {
