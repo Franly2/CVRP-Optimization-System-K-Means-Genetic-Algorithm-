@@ -8,9 +8,9 @@ export class addShiftDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Waktu mulai tidak boleh kosong' })
-  startTime!: string; // Format disarankan "HH:mm"
+  startTime!: string; // "HH:mm"s
 
   @IsString()
   @IsNotEmpty({ message: 'Waktu selesai tidak boleh kosong' })
-  endTime!: string; // Format disarankan "HH:mm"
+  endTime!: string; // "HH:mm"
 }

@@ -20,8 +20,8 @@ import { Type } from 'class-transformer';
 export class ProductScheduleDto {
   @IsNumber()
   @Min(1)
-  @Max(7) // Memastikan hari hanya 1 (Senin) sampai 7 (Minggu)
-  dayOfWeek!: number; // 👈 Pakai ! dan hapus | undefined
+  @Max(7) // mastiin cuma ada 7 hari
+  dayOfWeek!: number;
 
   @IsString()
   @IsNotEmpty({ message: 'Detail menu tidak boleh kosong' })
@@ -66,13 +66,11 @@ export class AddProductDto {
   @IsNotEmpty({ message: 'Minimal harus memilih 1 depot' })
   depotIds!: string[];
 
-  // NEW: Array untuk Jam Pengiriman (Shift)
   @IsArray()
   @IsString({ each: true })
-  @IsOptional() // Dibuat opsional jika produk belum punya shift
-  shiftIds?: string[]; // Tetap pakai ? karena opsional
+  @IsOptional() 
+  shiftIds?: string[]; //opsional
 
-  // NEW: Array of Objects untuk Jadwal Harian
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductScheduleDto) // Wajib pakai ini agar divalidasi ke class ProductScheduleDto
@@ -90,8 +88,6 @@ export class AddProductDto {
   @IsOptional()
   isSubscription?: boolean;
 
-  // MAGIC: ValidateIf akan mengecek isSubscription. 
-  // Jika true, maka durationDays WAJIB ada dan berupa angka > 0.
   @ValidateIf((object) => object.isSubscription === true)
   @IsNumber()
   @Min(1, { message: 'Durasi langganan minimal 1 hari' })

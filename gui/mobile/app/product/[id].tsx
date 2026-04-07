@@ -3,7 +3,8 @@ import { ThemedView } from '@/components/themed-view';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -44,9 +45,19 @@ interface ProductDetail {
   durationDays: number | null;
   availableAt: DepotItem[];
   images?: ProductImage[]; 
-  availableShifts?: ShiftItem[]; // Tambahan
-  schedules?: ScheduleItem[];    // Tambahan
+  availableShifts?: ShiftItem[]; 
+  schedules?: ScheduleItem[];   
 }
+
+const hexToRgba = (hex: string, alpha: number) => {
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(c => c + c).join('');
+  let r = parseInt(cleanHex.slice(0, 2), 16) || 0;
+  let g = parseInt(cleanHex.slice(2, 4), 16) || 0;
+  let b = parseInt(cleanHex.slice(4, 6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -55,11 +66,11 @@ export default function ProductDetailScreen() {
   const token = useAuthStore((state) => state.token);
   const role = useAuthStore((state) => state.role);
   const { colors } = useThemeStore(); 
+  const primaryColor = colors.primary || '#0F172A';
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- TAMBAHAN STATE MODAL ---
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
@@ -124,11 +135,12 @@ export default function ProductDetailScreen() {
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'AVAILABLE': return { bg: '#E8F5E9', text: '#2E7D32' };
-      case 'PENDING': return { bg: '#FFF3E0', text: '#EF6C00' };
-      case 'UNAVAILABLE': return { bg: '#F5F5F5', text: '#616161' };
-      case 'REJECTED': return { bg: '#FFEBEE', text: '#C62828' };
-      default: return { bg: '#ECEFF1', text: '#455A64' };
+      case 'AVAILABLE': return { bg: '#DCFCE7', text: '#166534' };
+      case 'PENDING': return { bg: '#FEF9C3', text: '#9A3412' };
+      case 'UNAVAILABLE': return { bg: '#F1F5F9', text: '#475569' };
+      case 'REJECTED': return { bg: '#FEE2E2', text: '#991B1B' };
+      case 'DELETED': return { bg: '#1E293B', text: '#F8FAFC' };
+      default: return { bg: '#F8FAFC', text: '#64748B' };
     }
   };
 
@@ -145,7 +157,6 @@ export default function ProductDetailScreen() {
     }
   };
 
-  // --- TAMBAHAN: Helper untuk nama hari ---
   const getDayName = (dayNumber: number) => {
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     return days[dayNumber - 1] || `Hari ke-${dayNumber}`;
@@ -154,7 +165,7 @@ export default function ProductDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={primaryColor} />
       </View>
     );
   }
@@ -162,259 +173,264 @@ export default function ProductDetailScreen() {
   if (!product) return null;
   const statusStyle = getStatusStyle(product.status);
 
-  // --- LOGIKA PEMISAHAN GAMBAR ---
   const mainImage = product.images?.find(img => img.isMain) || product.images?.[0];
   const otherImages = product.images?.filter(img => img.id !== mainImage?.id) || [];
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: 'Detail Produk', headerShown: true }} />
+      <Stack.Screen options={{ title: 'Detail Produk', headerShown: true, headerShadowVisible: false, headerStyle: { backgroundColor: '#F8FAFC' } }} />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         
         {/* --- Image Section --- */}
         <View style={styles.imageSection}>
-          <View style={styles.imageHeader}>
-             <ThemedText style={styles.imageHeaderText}>Foto Utama</ThemedText>
-          </View>
-          
           <View style={styles.mainImageContainer}>
             {mainImage ? (
               <TouchableOpacity onPress={() => handleOpenImage(mainImage.url)} activeOpacity={0.9}>
                 <Image source={{ uri: mainImage.url }} style={styles.mainImage} resizeMode="cover" />
               </TouchableOpacity>
             ) : (
-              <View style={[styles.mainImagePlaceholder, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name="fast-food-outline" size={64} color={colors.primary} />
-                <ThemedText style={{ color: colors.primary, marginTop: 10 }}>Belum ada foto</ThemedText>
+              <View style={[styles.mainImagePlaceholder, { backgroundColor: hexToRgba(primaryColor, 0.05) }]}>
+                <Ionicons name="image-outline" size={64} color="#CBD5E1" />
+                <ThemedText style={{ color: '#94A3B8', marginTop: 10, fontWeight: '500' }}>Belum ada foto</ThemedText>
               </View>
             )}
           </View>
 
           {otherImages.length > 0 && (
-            <View>
-              <View style={[styles.imageHeader, { marginTop: 15 }]}>
-                <ThemedText style={styles.imageHeaderText}>Foto Lainnya</ThemedText>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer} contentContainerStyle={{ paddingHorizontal: 20 }}>
-                {otherImages.map(img => (
-                  <TouchableOpacity key={img.id} onPress={() => handleOpenImage(img.url)} activeOpacity={0.7}>
-                    <Image source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer} contentContainerStyle={{ paddingHorizontal: 24 }}>
+              {otherImages.map(img => (
+                <TouchableOpacity key={img.id} onPress={() => handleOpenImage(img.url)} activeOpacity={0.7}>
+                  <Image source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           )}
         </View>
 
-        {/* --- Header Section --- */}
-        <View style={styles.headerCard}>
-          <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-              <ThemedText style={[styles.statusText, { color: statusStyle.text }]}>
-                {product.status}
-              </ThemedText>
-            </View>
-            {product.isSubscription && (
-              <View style={[styles.subBadge, { backgroundColor: colors.secondary + '20' }]}>
-                <Ionicons name="calendar" size={12} color={colors.primary} />
-                <ThemedText style={[styles.subBadgeText, { color: colors.primary }]}>Langganan {product.durationDays} Hari</ThemedText>
+        <View style={styles.contentPadding}>
+          {/* --- Header Section --- */}
+          <View style={styles.cardModern}>
+            <View style={styles.statusRow}>
+              <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                <ThemedText style={[styles.statusText, { color: statusStyle.text }]}>
+                  {product.status}
+                </ThemedText>
               </View>
-            )}
+              {product.isSubscription && (
+                <View style={[styles.subBadge, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                  <Ionicons name="calendar" size={12} color={primaryColor} />
+                  <ThemedText style={[styles.subBadgeText, { color: primaryColor }]}>Langganan {product.durationDays} Hari</ThemedText>
+                </View>
+              )}
+            </View>
+            <ThemedText style={styles.productName}>{product.name}</ThemedText>
+            <ThemedText style={[styles.productPrice, { color: primaryColor }]}>Rp {product.price.toLocaleString('id-ID')}</ThemedText>
           </View>
-          <ThemedText style={styles.productName}>{product.name}</ThemedText>
-          <ThemedText style={styles.productPrice}>Rp {product.price.toLocaleString('id-ID')}</ThemedText>
-        </View>
 
-        {/* --- Manajemen Status --- */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Kontrol Produk</ThemedText>
-          <View style={styles.statusActionContainer}>
-            {role === 'OWNER' && (
-              <View>
-                <ThemedText style={[styles.label, { marginBottom: 10 }]}>Tindakan Owner:</ThemedText>
-                <View style={styles.row}>
-                  {product.status === 'DELETED' && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: colors.primary }]} 
-                      onPress={() => handleChangeStatus('UNAVAILABLE')}
-                    >
-                      <Ionicons name="refresh-circle-outline" size={20} color="#FFF" />
-                      <ThemedText style={styles.buttonTextSmall}>Pulihkan Produk</ThemedText>
-                    </TouchableOpacity>
-                  )}
-                  {(product.status === 'PENDING' || product.status === 'REJECTED') && (
-                    <>
+          {/* --- Manajemen Status --- */}
+          <View style={styles.cardModern}>
+            <ThemedText style={styles.sectionTitle}>Kontrol Produk</ThemedText>
+            <View style={styles.statusActionContainer}>
+              {role === 'OWNER' && (
+                <View>
+                  <ThemedText style={styles.labelModern}>Tindakan Owner</ThemedText>
+                  <View style={styles.row}>
+                    {product.status === 'DELETED' && (
                       <TouchableOpacity 
-                        style={[styles.actionButton, { backgroundColor: '#2E7D32' }]} 
+                        style={[styles.actionButton, { backgroundColor: primaryColor }]} 
                         onPress={() => handleChangeStatus('UNAVAILABLE')}
                       >
-                        <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
-                        <ThemedText style={styles.buttonTextSmall}>Setujui</ThemedText>
+                        <Ionicons name="refresh" size={20} color="#FFF" />
+                        <ThemedText style={styles.buttonTextSmall}>Pulihkan</ThemedText>
                       </TouchableOpacity>
+                    )}
+                    {(product.status === 'PENDING' || product.status === 'REJECTED') && (
+                      <>
+                        <TouchableOpacity 
+                          style={[styles.actionButton, { backgroundColor: '#10B981' }]} 
+                          onPress={() => handleChangeStatus('UNAVAILABLE')}
+                        >
+                          <Ionicons name="checkmark" size={20} color="#FFF" />
+                          <ThemedText style={styles.buttonTextSmall}>Setujui</ThemedText>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={[styles.actionButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} 
+                          onPress={() => handleChangeStatus('REJECTED')}
+                        >
+                          <Ionicons name="close" size={20} color="#FFF" />
+                          <ThemedText style={styles.buttonTextSmall}>Tolak</ThemedText>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                    {product.status !== 'DELETED' && (
                       <TouchableOpacity 
-                        style={[styles.actionButton, { backgroundColor: '#E64A19', marginLeft: 10 }]} 
-                        onPress={() => handleChangeStatus('REJECTED')}
+                        style={[styles.actionButton, { backgroundColor: '#EF4444', marginLeft: 12 }]} 
+                        onPress={handleDeletePress}
                       >
-                        <Ionicons name="close-circle-outline" size={20} color="#FFF" />
-                        <ThemedText style={styles.buttonTextSmall}>Tolak</ThemedText>
+                        <Ionicons name="trash" size={20} color="#FFF" />
+                        <ThemedText style={styles.buttonTextSmall}>Hapus</ThemedText>
                       </TouchableOpacity>
-                    </>
-                  )}
-                  {product.status !== 'DELETED' && (
-                    <TouchableOpacity 
-                      style={[styles.actionButton, { backgroundColor: '#B71C1C', marginLeft: 10 }]} 
-                      onPress={handleDeletePress}
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#FFF" />
-                      <ThemedText style={styles.buttonTextSmall}>Hapus</ThemedText>
-                    </TouchableOpacity>
+                    )}
+                  </View>
+                  {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
+                    <View style={styles.dividerModern} />
                   )}
                 </View>
-                {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
-                  <View style={{ height: 1, backgroundColor: '#EEE', marginVertical: 15 }} />
-                )}
-              </View>
-            )}
+              )}
 
-            {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
-              <TouchableOpacity 
-                style={[
-                  styles.statusToggle, 
-                  { backgroundColor: product.status === 'AVAILABLE' ? '#FFA000' : '#2E7D32' }
-                ]} 
-                onPress={() => handleChangeStatus(product.status === 'AVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE')}
-              >
-                <Ionicons 
-                  name={product.status === 'AVAILABLE' ? "eye-off-outline" : "eye-outline"} 
-                  size={20} color="#FFF" 
-                />
-                <ThemedText style={styles.buttonTextSmall}>
-                  {product.status === 'AVAILABLE' ? 'Set ke Non-Aktif (Kosong)' : 'Aktifkan Kembali'}
-                </ThemedText>
-              </TouchableOpacity>
-            )}
+              {(product.status === 'AVAILABLE' || product.status === 'UNAVAILABLE') && (
+                <TouchableOpacity 
+                  style={[
+                    styles.statusToggle, 
+                    { backgroundColor: product.status === 'AVAILABLE' ? '#F59E0B' : '#10B981' }
+                  ]} 
+                  onPress={() => handleChangeStatus(product.status === 'AVAILABLE' ? 'UNAVAILABLE' : 'AVAILABLE')}
+                >
+                  <Ionicons 
+                    name={product.status === 'AVAILABLE' ? "eye-off" : "eye"} 
+                    size={20} color="#FFF" 
+                  />
+                  <ThemedText style={styles.buttonTextSmall}>
+                    {product.status === 'AVAILABLE' ? 'Set Non-Aktif (Kosong)' : 'Aktifkan Produk'}
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
 
-            {product.status === 'DELETED' && (
-              <View style={[styles.infoBox, { backgroundColor: '#FFEBEE', marginTop: role === 'OWNER' ? 10 : 0 }]}>
-                <Ionicons name="trash-bin-outline" size={20} color="#B71C1C" />
-                <ThemedText style={{ color: '#B71C1C', fontSize: 13, flex: 1 }}>
-                  Produk ini berada di tempat sampah. {role === 'OWNER' ? 'Gunakan tombol Pulihkan.' : 'Hubungi Owner.'}
-                </ThemedText>
-              </View>
-            )}
+              {product.status === 'DELETED' && (
+                <View style={[styles.infoBox, { backgroundColor: '#FEF2F2', marginTop: role === 'OWNER' ? 12 : 0 }]}>
+                  <Ionicons name="trash-bin" size={20} color="#EF4444" />
+                  <ThemedText style={{ color: '#EF4444', fontSize: 13, flex: 1, fontWeight: '500' }}>
+                    Produk berada di tempat sampah. {role === 'OWNER' ? 'Gunakan tombol Pulihkan.' : 'Hubungi Owner.'}
+                  </ThemedText>
+                </View>
+              )}
 
-            {role === 'ADMIN' && (
-              <>
-                {product.status === 'PENDING' && (
-                  <View style={[styles.infoBox, { backgroundColor: colors.primary + '15' }]}>
-                    <Ionicons name="time-outline" size={20} color={colors.primary} />
-                    <ThemedText style={{ color: colors.primary, fontSize: 13, flex: 1 }}>
-                      Menunggu Owner menyetujui produk ini.
-                    </ThemedText>
-                  </View>
-                )}
-                {product.status === 'REJECTED' && (
-                  <View style={styles.infoBox}>
-                    <Ionicons name="alert-circle-outline" size={20} color="#C62828" />
-                    <ThemedText style={{ color: '#C62828', fontSize: 13, flex: 1 }}>
-                      Produk ditolak oleh Owner.
-                    </ThemedText>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* --- Specs Section --- */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Estimasi Logistik</ThemedText>
-          <View style={styles.row}>
-            <View style={styles.specBox}>
-              <Ionicons name="barbell-outline" size={20} color="#666" />
-              <ThemedText style={styles.specLabel}>Berat</ThemedText>
-              <ThemedText style={styles.specValue}>{product.weightEst} kg</ThemedText>
-            </View>
-            <View style={[styles.specBox, { marginLeft: 15 }]}>
-              <Ionicons name="cube-outline" size={20} color="#666" />
-              <ThemedText style={styles.specLabel}>Volume</ThemedText>
-              <ThemedText style={styles.specValue}>{product.volumeEst} L</ThemedText>
+              {role === 'ADMIN' && (
+                <>
+                  {product.status === 'PENDING' && (
+                    <View style={[styles.infoBox, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                      <Ionicons name="time" size={20} color={primaryColor} />
+                      <ThemedText style={{ color: primaryColor, fontSize: 13, flex: 1, fontWeight: '500' }}>
+                        Menunggu persetujuan Owner.
+                      </ThemedText>
+                    </View>
+                  )}
+                  {product.status === 'REJECTED' && (
+                    <View style={[styles.infoBox, { backgroundColor: '#FEF2F2' }]}>
+                      <Ionicons name="alert-circle" size={20} color="#EF4444" />
+                      <ThemedText style={{ color: '#EF4444', fontSize: 13, flex: 1, fontWeight: '500' }}>
+                        Produk ditolak oleh Owner.
+                      </ThemedText>
+                    </View>
+                  )}
+                </>
+              )}
             </View>
           </View>
-        </View>
 
-        {/* --- Shifts Section --- */}
-        {product.availableShifts && product.availableShifts.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Jam Pengiriman (Shift)</ThemedText>
-            {product.availableShifts.map((shift) => (
-              <View key={shift.id} style={styles.shiftCard}>
-                <View style={[styles.shiftIcon, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name="time" size={20} color={colors.primary} />
+          {/* --- Specs Section --- */}
+          <View style={styles.cardModern}>
+            <ThemedText style={styles.sectionTitle}>Estimasi Logistik</ThemedText>
+            <View style={styles.row}>
+              <View style={styles.specBox}>
+                <View style={[styles.iconBoxSmall, { backgroundColor: '#F1F5F9' }]}>
+                  <Ionicons name="barbell" size={20} color="#64748B" />
                 </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <ThemedText style={styles.shiftName}>{shift.name}</ThemedText>
-                  <ThemedText style={styles.shiftTime}>{shift.startTime} - {shift.endTime}</ThemedText>
+                <View>
+                  <ThemedText style={styles.specLabel}>Berat</ThemedText>
+                  <ThemedText style={styles.specValue}>{product.weightEst} kg</ThemedText>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* --- TAMBAHAN: Schedules Section (Hanya untuk Katering) --- */}
-        {product.isSubscription && product.schedules && product.schedules.length > 0 && (
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Jadwal Menu Harian</ThemedText>
-            {product.schedules.map((schedule) => (
-              <View key={schedule.id} style={styles.scheduleCard}>
-                <View style={[styles.dayBadge, { backgroundColor: colors.primary }]}>
-                  <ThemedText style={styles.dayBadgeText}>{getDayName(schedule.dayOfWeek)}</ThemedText>
+              <View style={[styles.specBox, { marginLeft: 12 }]}>
+                <View style={[styles.iconBoxSmall, { backgroundColor: '#F1F5F9' }]}>
+                  <Ionicons name="cube" size={20} color="#64748B" />
                 </View>
-                <ThemedText style={styles.menuDetails}>{schedule.menuDetails}</ThemedText>
+                <View>
+                  <ThemedText style={styles.specLabel}>Volume</ThemedText>
+                  <ThemedText style={styles.specValue}>{product.volumeEst} L</ThemedText>
+                </View>
               </View>
-            ))}
+            </View>
           </View>
-        )}
 
-        {/* --- Depots Section --- */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Tersedia di Depot</ThemedText>
-          {product.availableAt.length > 0 ? (
-            product.availableAt.map((depot) => (
-              <TouchableOpacity 
-                key={depot.id} 
-                style={styles.depotCard}
-                onPress={() => router.push(`/depot/${depot.id}`)}
-              >
-                <View style={[styles.depotIcon, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name="business" size={20} color={colors.primary} />
+          {/* --- Shifts Section --- */}
+          {product.availableShifts && product.availableShifts.length > 0 && (
+            <View style={styles.cardModern}>
+              <ThemedText style={styles.sectionTitle}>Jam Pengiriman (Shift)</ThemedText>
+              {product.availableShifts.map((shift) => (
+                <View key={shift.id} style={styles.listItemModern}>
+                  <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                    <Ionicons name="time" size={20} color={primaryColor} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.itemTitleModern}>{shift.name}</ThemedText>
+                    <ThemedText style={styles.itemSubModern}>{shift.startTime} - {shift.endTime}</ThemedText>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.depotName}>{depot.name}</ThemedText>
-                  <ThemedText style={styles.depotAddress} numberOfLines={1}>{depot.address}</ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#CCC" />
-              </TouchableOpacity>
-            ))
-          ) : (
-            <ThemedText style={styles.emptyText}>Produk ini belum dihubungkan ke depot manapun.</ThemedText>
+              ))}
+            </View>
           )}
+
+          {/* --- Schedules Section --- */}
+          {product.isSubscription && product.schedules && product.schedules.length > 0 && (
+            <View style={styles.cardModern}>
+              <ThemedText style={styles.sectionTitle}>Jadwal Menu Harian</ThemedText>
+              {product.schedules.map((schedule) => (
+                <View key={schedule.id} style={styles.scheduleCard}>
+                  <View style={[styles.dayBadge, { backgroundColor: primaryColor }]}>
+                    <ThemedText style={styles.dayBadgeText}>{getDayName(schedule.dayOfWeek)}</ThemedText>
+                  </View>
+                  <ThemedText style={styles.menuDetails}>{schedule.menuDetails}</ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* --- Depots Section --- */}
+          <View style={styles.cardModern}>
+            <ThemedText style={styles.sectionTitle}>Tersedia di Depot</ThemedText>
+            {product.availableAt.length > 0 ? (
+              product.availableAt.map((depot) => (
+                <TouchableOpacity 
+                  key={depot.id} 
+                  style={styles.listItemModern}
+                  onPress={() => router.push(`/depot/${depot.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                    <Ionicons name="business" size={20} color={primaryColor} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.itemTitleModern}>{depot.name}</ThemedText>
+                    <ThemedText style={styles.itemSubModern} numberOfLines={1}>{depot.address}</ThemedText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyContainerModern}>
+                <Ionicons name="storefront-outline" size={40} color="#CBD5E1" />
+                <ThemedText style={styles.emptyTextModern}>Produk belum dihubungkan ke depot.</ThemedText>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
       {/* --- Action Bar --- */}
       <View style={styles.actionBar}>
         <TouchableOpacity 
-          style={[styles.editButton, { backgroundColor: colors.primary }]} 
+          style={[styles.editButton, { backgroundColor: primaryColor }]} 
           onPress={() => router.push(`/product/edit/${product.id}`)}
+          activeOpacity={0.8}
         >
           <Ionicons name="create-outline" size={20} color="#FFF" />
-          <ThemedText style={styles.buttonText}>Edit Produk</ThemedText>
+          <ThemedText style={styles.buttonText}>Edit Data Produk</ThemedText>
         </TouchableOpacity>
       </View>
 
-      {/* --- TAMBAHAN: MODAL ZOOM GAMBAR --- */}
+      {/* --- MODAL ZOOM GAMBAR --- */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -444,109 +460,62 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  contentPadding: { padding: 24, paddingTop: 10 },
   
-  imageSection: { backgroundColor: '#FFF', paddingBottom: 20 },
-  imageHeader: { paddingHorizontal: 20, paddingVertical: 10 },
-  imageHeaderText: { fontSize: 14, fontWeight: 'bold', color: '#666' },
+  imageSection: { marginBottom: 10 },
+  mainImageContainer: { alignItems: 'center', paddingHorizontal: 24, marginTop: 10 }, 
+  mainImage: { width: '100%', height: 320, borderRadius: 24, backgroundColor: '#F1F5F9' }, 
+  mainImagePlaceholder: { width: '100%', height: 320, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
   
-  mainImageContainer: { alignItems: 'center', marginTop: 5 }, 
-  mainImage: { width: 320, height: 320, borderRadius: 12, backgroundColor: '#F0F0F0' }, 
-  mainImagePlaceholder: { width: 320, height: 320, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  
-  thumbnailContainer: { marginTop: 5 },
-  thumbnailImage: { width: 70, height: 70, borderRadius: 8, marginRight: 10, borderWidth: 1, borderColor: '#EEE' },
+  thumbnailContainer: { marginTop: 16 },
+  thumbnailImage: { width: 72, height: 72, borderRadius: 16, marginRight: 12 },
 
-  headerCard: { backgroundColor: '#FFF', padding: 20, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-  statusRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: 'bold' },
-  subBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  subBadgeText: { fontSize: 11, fontWeight: 'bold' },
-  productName: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  productPrice: { fontSize: 20, color: '#2E7D32', fontWeight: 'bold', marginTop: 5 },
-  section: { paddingHorizontal: 20, paddingTop: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#555', marginBottom: 15 },
+  cardModern: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
+  
+  statusRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  statusText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  subBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  subBadgeText: { fontSize: 11, fontWeight: '800' },
+  
+  productName: { fontSize: 26, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5, lineHeight: 32 },
+  productPrice: { fontSize: 20, fontWeight: '800', marginTop: 8 },
+  
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A', marginBottom: 16, letterSpacing: -0.3 },
   row: { flexDirection: 'row' },
-  specBox: { flex: 1, backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
-  specLabel: { fontSize: 12, color: '#888', marginTop: 5 },
-  specValue: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   
-  shiftCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
-  shiftIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  shiftName: { fontSize: 15, fontWeight: 'bold', color: '#333' },
-  shiftTime: { fontSize: 13, color: '#666', marginTop: 4 },
+  specBox: { flex: 1, flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, alignItems: 'center' },
+  iconBoxSmall: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  specLabel: { fontSize: 12, color: '#64748B', fontWeight: '600' },
+  specValue: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginTop: 2 },
+  
+  listItemModern: { flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 16, marginBottom: 10, alignItems: 'center' },
+  itemTitleModern: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
+  itemSubModern: { fontSize: 13, color: '#64748B', fontWeight: '500' },
 
-  scheduleCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
-  dayBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, marginBottom: 10 },
-  dayBadgeText: { fontSize: 12, fontWeight: 'bold', color: '#FFF' },
-  menuDetails: { fontSize: 14, color: '#444', lineHeight: 22 },
+  scheduleCard: { backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, marginBottom: 10 },
+  dayBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 12 },
+  dayBadgeText: { fontSize: 12, fontWeight: '800', color: '#FFF' },
+  menuDetails: { fontSize: 14, color: '#475569', lineHeight: 22, fontWeight: '500' },
 
-  depotCard: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#EEE' },
-  depotIcon: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  depotName: { fontSize: 14, fontWeight: 'bold', color: '#333' },
-  depotAddress: { fontSize: 12, color: '#888', marginTop: 2 },
-  emptyText: { color: '#999', fontStyle: 'italic' },
-  actionBar: { padding: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#EEE' },
-  editButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 12, gap: 10 },
-  buttonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  statusActionContainer: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    height: 45,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusToggle: {
-    flexDirection: 'row',
-    height: 45,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  buttonTextSmall: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 10,
-    borderRadius: 8,
-  },
-  label : { 
-    fontSize: 13, 
-    color: '#666', 
-    marginBottom: 8, 
-    fontWeight: '600'
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-  },
-  fullImage: {
-    width: '100%',
-    height: '80%',
-  },
+  emptyContainerModern: { alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
+  emptyTextModern: { marginTop: 12, fontSize: 14, color: '#94A3B8', fontWeight: '500', textAlign: 'center' },
+
+  actionBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
+  editButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, borderRadius: 16, gap: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  buttonText: { color: '#FFF', fontWeight: '800', fontSize: 16 },
+  
+  statusActionContainer: { marginTop: 4 },
+  actionButton: { flex: 1, flexDirection: 'row', height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  statusToggle: { flexDirection: 'row', height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  buttonTextSmall: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14 },
+  labelModern: { fontSize: 13, color: '#64748B', marginBottom: 12, fontWeight: '700' },
+  dividerModern: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 16 },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.95)', justifyContent: 'center', alignItems: 'center' },
+  modalCloseButton: { position: 'absolute', top: 50, right: 20, zIndex: 10 },
+  fullImage: { width: '100%', height: '80%' },
 });

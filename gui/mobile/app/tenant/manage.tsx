@@ -16,7 +16,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 export default function ManageTenantScreen() {
@@ -39,6 +39,7 @@ export default function ManageTenantScreen() {
     logoUrl: ''
   });
 
+  // State untuk melacak pesan error per field
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const api_address = process.env.EXPO_PUBLIC_API_IP_ADDRESS;
@@ -82,18 +83,21 @@ export default function ManageTenantScreen() {
 
   const handleChangeText = (field: string, value: string) => {
     setEditForm({ ...editForm, [field]: value });
+    // Hapus error saat user mulai mengetik ulang di field tersebut
     if (errors[field]) {
       setErrors({ ...errors, [field]: '' });
     }
   };
 
   const openEditModal = () => {
-    setErrors({});
+    setErrors({}); // Bersihkan semua error saat modal pertama kali dibuka
     setIsModalVisible(true);
   };
 
   const updateBranding = async () => {
     let newErrors: Record<string, string> = {};
+    
+    // --- Validasi Client-Side ---
     if (!editForm.name || String(editForm.name).trim() === '') {
       newErrors.name = 'Nama perusahaan tidak boleh kosong';
     }
@@ -102,19 +106,17 @@ export default function ManageTenantScreen() {
       newErrors.industry = 'Industri tidak boleh kosong';
     }
 
-    //Cek Format Warna
     const hexColorRegex = /^#([0-9A-F]{3}|[0-9A-F]{6})$/i;
     if (editForm.colorPrimary && !hexColorRegex.test(String(editForm.colorPrimary).trim())) {
-      newErrors.colorPrimary = 'Warna utama harus format hex (contoh: #1976D2)';
+      newErrors.colorPrimary = 'Format hex tidak valid (contoh: #1976D2)';
     }
     if (editForm.colorSecondary && !hexColorRegex.test(String(editForm.colorSecondary).trim())) {
-      newErrors.colorSecondary = 'Warna sekunder harus format hex (contoh: #FFC107)';
+      newErrors.colorSecondary = 'Format hex tidak valid (contoh: #FFC107)';
     }
     if (editForm.colorTertiary && !hexColorRegex.test(String(editForm.colorTertiary).trim())) {
-      newErrors.colorTertiary = 'Warna tersier harus format hex (contoh: #4CAF50)';
+      newErrors.colorTertiary = 'Format hex tidak valid (contoh: #4CAF50)';
     }
 
-    // Cek Format URL Logo 
     if (editForm.logoUrl && String(editForm.logoUrl).trim() !== '') {
       try {
         new URL(String(editForm.logoUrl).trim());
@@ -122,7 +124,8 @@ export default function ManageTenantScreen() {
         newErrors.logoUrl = 'URL logo tidak valid';
       }
     }
-    // kalo ada error, set ke state dan jangan lanjut ke API
+
+    // Jika ada error dari validasi client-side, stop dan tampilkan
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return; 
@@ -155,7 +158,7 @@ export default function ManageTenantScreen() {
         setIsModalVisible(false);
         fetchBranding(); 
       } else {
-        // PRINT ERROR BALASAN API (ARRAY OF STRINGS)
+        // --- Tangkap dan petakan Error dari Backend (Server-Side Validation) ---
         if (result.message && Array.isArray(result.message)) {
           let backendErrors: Record<string, string> = {};
           
@@ -171,12 +174,12 @@ export default function ManageTenantScreen() {
             else if (lowerMsg.includes('warna tersier') || lowerMsg.includes('colortertiary')) fieldKey = 'colorTertiary';
 
             if (fieldKey) {
-              // Jika field sudah punya error, gabungkan dengan baris baru (newline)
               backendErrors[fieldKey] = backendErrors[fieldKey] 
                 ? `${backendErrors[fieldKey]}\n• ${msg}` 
                 : `• ${msg}`;
             } else {
-              Alert.alert('Validasi Server', msg); 
+              // Jika tidak dikenali field mana yang error, tampilkan sebagai Alert biasa
+              Alert.alert('Peringatan', msg); 
             }
           });
 
@@ -278,7 +281,8 @@ export default function ManageTenantScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
               
               {/* === NAMA === */}
-              <ThemedText style={styles.label}>Nama Perusahaan</ThemedText>
+              {/* <ThemedText style={styles.label}>Nama Perusahaan <Text style={{color: '#DC3545'}}>*</Text></ThemedText> */}
+              <ThemedText style={styles.label}>Nama Perusahaan <ThemedText style={{color: '#DC3545'}}>*</ThemedText></ThemedText>
               <TextInput 
                 style={[styles.input, errors.name && styles.inputError]} 
                 value={editForm.name} 
@@ -287,7 +291,8 @@ export default function ManageTenantScreen() {
               {errors.name ? <ThemedText style={styles.errorText}>{errors.name}</ThemedText> : null}
 
               {/* === INDUSTRI === */}
-              <ThemedText style={styles.label}>Industri</ThemedText>
+              {/* <ThemedText style={styles.label}>Industri <Text style={{color: '#DC3545'}}>*</Text></ThemedText> */}
+              <ThemedText style={styles.label}>Industri <ThemedText style={{color: '#DC3545'}}>*</ThemedText></ThemedText>
               <TextInput 
                 style={[styles.input, errors.industry && styles.inputError]} 
                 value={editForm.industry} 
@@ -388,7 +393,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: 'bold', color: '#666', marginBottom: 6, marginTop: 12 },
   
   input: { backgroundColor: '#F5F5F5', borderRadius: 8, padding: 12, color: '#333', borderWidth: 1, borderColor: '#EEE' },
-  inputError: { borderColor: '#DC3545', backgroundColor: '#FFF8F8' },
+  inputError: { borderColor: '#DC3545', backgroundColor: '#FFF8F8' }, // Efek box merah jika error
   errorText: { color: '#DC3545', fontSize: 11, marginTop: 4, marginLeft: 2, lineHeight: 16 }, 
   
   saveButton: { padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 25, marginBottom: 20 },

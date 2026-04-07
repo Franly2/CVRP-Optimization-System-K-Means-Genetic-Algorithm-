@@ -1,10 +1,5 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import {
   ConflictException,
@@ -15,11 +10,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterUserDto } from './dto/register.dto';
 import { LoginUserDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AccountStatus, Prisma, PrismaClient, Role } from '@prisma/client';
+import { RegisterCustomerDto } from './dto/registerCustomer.dto';
+import { RegisterUserDto } from './dto/register.dto';
 
 export interface LoginResponse {
   access_token: string;
@@ -32,6 +28,11 @@ export interface LoginResponse {
     colorSecondary: string | null;
     colorTertiary: string | null;
   };
+}
+
+export interface RegisterResponse {
+  status: string;
+  message: string;
 }
 
 export interface meResponse {
@@ -86,6 +87,7 @@ export class AuthService {
       colorTertiary: true,
     },
   });
+
 
   if (!company) throw new NotFoundException('Perusahaan tidak terdaftar');
 
@@ -208,5 +210,53 @@ export class AuthService {
           colorTertiary: company.colorTertiary,
         }
       };
+    }
+
+    async registerCustomer(companySlug: string, data: RegisterCustomerDto): Promise<RegisterResponse> {
+      const { 
+        username, 
+        password, 
+        fullName, 
+        birthDate, 
+        phoneNumber,
+      } = data;
+    
+      const salt = await bcrypt.genSalt();
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      try {
+        const company = await this.prismaAuth.company.findUnique({
+          where: { slug: companySlug },
+        });
+        if (!company) {
+          throw new NotFoundException('Perusahaan tidak ditemukan');
+        }
+
+        await this.prismaAuth.user.create({
+          data: {
+            username,
+            password: hashedPassword,
+            role: Role.CUSTOMER,
+            fullName,
+            phoneNumber,
+            birthDate: new Date(birthDate),
+            companyId: company.id,
+            status: AccountStatus.ACCEPTED, // Langsung aktif karena ini customer
+          },
+        });
+
+        return {
+          status: 'success',
+          message: 'Akun customer berhasil dibuat',
+        };
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === 'P2002') {
+            throw new ConflictException('Username sudah terpakai di perusahaan ini');
+          }
+        }
+        console.error('Customer Registration Error:', error);
+        throw new InternalServerErrorException('Gagal mendaftar customer');
+      }
     }
 }

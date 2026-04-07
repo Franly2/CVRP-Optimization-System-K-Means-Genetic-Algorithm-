@@ -38,6 +38,16 @@ interface DepotDetail {
   products: ProductItem[];
 }
 
+const hexToRgba = (hex: string, alpha: number) => {
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(c => c + c).join('');
+  let r = parseInt(cleanHex.slice(0, 2), 16) || 0;
+  let g = parseInt(cleanHex.slice(2, 4), 16) || 0;
+  let b = parseInt(cleanHex.slice(4, 6), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export default function DepotDetailScreen() {
   const { username: userName, role: userRole, logout } = useAuthStore();
   const { id } = useLocalSearchParams(); 
@@ -45,11 +55,12 @@ export default function DepotDetailScreen() {
   const token = useAuthStore((state) => state.token);
   
   const { colors } = useThemeStore();
+  const primaryColor = colors.primary || '#0F172A';
 
   const [depot, setDepot] = useState<DepotDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [activeTab, setActiveTab] = useState<'INFO' | 'USERS' | 'ORDERS' | 'PACKAGES' | 'ROUTES' | 'PRODUCTS'>('INFO');
+  const [activeTab, setActiveTab] = useState<'INFO' | 'USERS' | 'PRODUCTS' | 'ORDERS' | 'PACKAGES' | 'ROUTES'>('INFO');
   const [staffFilter, setStaffFilter] = useState<'ALL' | 'ADMIN' | 'DRIVER'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACCEPTED' | 'PENDING' | 'SUSPENDED' | 'REJECTED'>('ALL');
   const [productStatusFilter, setProductStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'UNAVAILABLE' | 'PENDING' | 'REJECTED' | 'DELETED'>('ALL');
@@ -90,27 +101,31 @@ export default function DepotDetailScreen() {
     }, [id])
   );
 
-  const TabButton = ({ title, tabName }: { title: string, tabName: any }) => (
-    <TouchableOpacity 
-      style={[
-        styles.tabButton, 
-        activeTab === tabName && { backgroundColor: colors.primary } 
-      ]}
-      onPress={() => setActiveTab(tabName)}
-    >
-      <ThemedText style={[styles.tabText, activeTab === tabName && styles.tabTextActive]}>
-        {title}
-      </ThemedText>
-    </TouchableOpacity>
-  );
+  const TabButton = ({ title, tabName }: { title: string, tabName: any }) => {
+    const isActive = activeTab === tabName;
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.tabButton, 
+          isActive && { backgroundColor: primaryColor } 
+        ]}
+        onPress={() => setActiveTab(tabName)}
+        activeOpacity={0.8}
+      >
+        <ThemedText style={[styles.tabText, isActive && styles.tabTextActive]}>
+          {title}
+        </ThemedText>
+      </TouchableOpacity>
+    );
+  };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'ACCEPTED': return { bg: '#E8F5E9', text: '#2E7D32' };
-      case 'PENDING': return { bg: '#FFF3E0', text: '#EF6C00' };
-      case 'REJECTED': return { bg: '#FFEBEE', text: '#C62828' };
-      case 'SUSPENDED': return { bg: '#F5F5F5', text: '#424242' };
-      default: return { bg: '#ECEFF1', text: '#455A64' };
+      case 'ACCEPTED': return { bg: '#DCFCE7', text: '#166534' };
+      case 'PENDING': return { bg: '#FEF9C3', text: '#9A3412' };
+      case 'REJECTED': return { bg: '#FEE2E2', text: '#991B1B' };
+      case 'SUSPENDED': return { bg: '#F1F5F9', text: '#334155' };
+      default: return { bg: '#F8FAFC', text: '#475569' };
     }
   };
 
@@ -148,24 +163,53 @@ export default function DepotDetailScreen() {
     switch (activeTab) {
       case 'INFO':
         return (
-          <View style={styles.card}>
-            <ThemedText style={styles.label}>Alamat Lengkap</ThemedText>
-            <ThemedText style={styles.value}>{depot.address}</ThemedText>
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <ThemedText style={styles.label}>Latitude</ThemedText>
-                <ThemedText style={styles.value}>{depot.lat}</ThemedText>
+          <View style={styles.cardModern}>
+            <View style={styles.infoRow}>
+               <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                 <Ionicons name="location" size={20} color={primaryColor} />
+               </View>
+               <View style={{flex: 1}}>
+                 <ThemedText style={styles.labelModern}>Alamat Lengkap</ThemedText>
+                 <ThemedText style={styles.valueModern}>{depot.address}</ThemedText>
+               </View>
+            </View>
+
+            <View style={styles.dividerModern} />
+
+            <View style={styles.rowModern}>
+              <View style={styles.halfWidthModern}>
+                <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.1), marginBottom: 8 }]}>
+                   <Ionicons name="compass" size={20} color={primaryColor} />
+                </View>
+                <ThemedText style={styles.labelModern}>Latitude</ThemedText>
+                <ThemedText style={styles.valueModern}>{depot.lat}</ThemedText>
               </View>
-              <View style={styles.halfWidth}>
-                <ThemedText style={styles.label}>Longitude</ThemedText>
-                <ThemedText style={styles.value}>{depot.lng}</ThemedText>
+              <View style={styles.halfWidthModern}>
+                <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.1), marginBottom: 8 }]}>
+                   <Ionicons name="navigate" size={20} color={primaryColor} />
+                </View>
+                <ThemedText style={styles.labelModern}>Longitude</ThemedText>
+                <ThemedText style={styles.valueModern}>{depot.lng}</ThemedText>
               </View>
             </View>
-            <View style={styles.divider} />
-            <ThemedText style={styles.label}>Statistik Cepat</ThemedText>
-            <ThemedText style={styles.statsText}>• {depot.users.length} Staf / Kurir</ThemedText>
-            <ThemedText style={styles.statsText}>• {depot.orders.length} Order Tercatat</ThemedText>
-            <ThemedText style={styles.statsText}>• {depot.packages.length} Paket Menunggu</ThemedText>
+
+            <View style={styles.dividerModern} />
+            
+            <ThemedText style={[styles.labelModern, {marginBottom: 12}]}>Statistik Cepat</ThemedText>
+            <View style={styles.statsGrid}>
+               <View style={styles.statBox}>
+                  <ThemedText style={styles.statNumber}>{depot.users.length}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Staf Aktif</ThemedText>
+               </View>
+               <View style={styles.statBox}>
+                  <ThemedText style={styles.statNumber}>{depot.orders.length}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Total Order</ThemedText>
+               </View>
+               <View style={styles.statBox}>
+                  <ThemedText style={styles.statNumber}>{depot.packages.length}</ThemedText>
+                  <ThemedText style={styles.statLabel}>Paket Berjalan</ThemedText>
+               </View>
+            </View>
           </View>
         );
       
@@ -182,68 +226,81 @@ export default function DepotDetailScreen() {
 
         return (
           <View>
-            <View style={styles.filterContainer}>
-              {['ALL', 'ADMIN', 'DRIVER'].map((role) => (
-                <TouchableOpacity 
-                  key={role}
-                  style={[
-                    styles.filterButton, 
-                    { borderColor: colors.primary }, 
-                    staffFilter === role && { backgroundColor: colors.primary } 
-                  ]}
-                  onPress={() => setStaffFilter(role as any)}
-                >
-                  <ThemedText style={[
-                    { color: colors.primary, fontSize: 13, fontWeight: 'bold' }, 
-                    staffFilter === role && styles.filterTextActive
-                  ]}>
-                    {role === 'ALL' ? 'Semua Role' : role}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.filterContainerModern}>
+              {['ALL', 'ADMIN', 'DRIVER'].map((role) => {
+                const isActive = staffFilter === role;
+                return (
+                  <TouchableOpacity 
+                    key={role}
+                    style={[
+                      styles.filterButtonModern, 
+                      { borderColor: hexToRgba(primaryColor, 0.2) }, 
+                      isActive && { backgroundColor: hexToRgba(primaryColor, 0.1), borderColor: primaryColor } 
+                    ]}
+                    onPress={() => setStaffFilter(role as any)}
+                  >
+                    <ThemedText style={[
+                      styles.filterTextModern, 
+                      { color: isActive ? primaryColor : '#64748B' },
+                      isActive && { fontWeight: '700' }
+                    ]}>
+                      {role === 'ALL' ? 'Semua Role' : role}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
-              {['ALL', 'ACCEPTED', 'PENDING', 'SUSPENDED', 'REJECTED'].map((status) => (
-                <TouchableOpacity 
-                  key={status}
-                  style={[
-                    styles.statusFilterOption, 
-                    statusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary } 
-                  ]}
-                  onPress={() => setStatusFilter(status as any)}
-                >
-                  <View style={[styles.dot, { backgroundColor: getStatusStyle(status).text }]} />
-                  <ThemedText style={[styles.statusFilterText, statusFilter === status && styles.statusFilterTextActive]}>
-                    {status === 'ALL' ? 'Semua Status' : status}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScrollModern} contentContainerStyle={{paddingRight: 20}}>
+              {['ALL', 'ACCEPTED', 'PENDING', 'SUSPENDED', 'REJECTED'].map((status) => {
+                const isActive = statusFilter === status;
+                return (
+                  <TouchableOpacity 
+                    key={status}
+                    style={[
+                      styles.statusFilterOptionModern, 
+                      isActive && { backgroundColor: primaryColor, borderColor: primaryColor } 
+                    ]}
+                    onPress={() => setStatusFilter(status as any)}
+                  >
+                    <View style={[styles.dotModern, { backgroundColor: isActive ? '#FFF' : getStatusStyle(status).text }]} />
+                    <ThemedText style={[styles.statusFilterTextModern, isActive && styles.statusFilterTextActiveModern]}>
+                      {status === 'ALL' ? 'Semua Status' : status}
+                    </ThemedText>
+                  </TouchableOpacity>
+                )
+              })}
             </ScrollView>
 
             {sortedUsers.length === 0 && (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="search-outline" size={48} color="#ccc" />
-                <ThemedText style={styles.emptyText}>Tidak ada staf yang cocok dengan filter ini.</ThemedText>
+              <View style={styles.emptyContainerModern}>
+                <Ionicons name="people-outline" size={64} color="#CBD5E1" />
+                <ThemedText style={styles.emptyTextModern}>Tidak ada staf yang ditemukan.</ThemedText>
               </View>
             )}
 
             {sortedUsers.map((u) => {
               const statusColors = getStatusStyle(u.status);
               return (
-                <TouchableOpacity key={u.id} style={styles.listItem} onPress={() => router.push(`/human/${u.id}`)}>
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <ThemedText style={styles.itemTitle}>{u.fullName}</ThemedText>
-                      <View style={[styles.statusChip, { backgroundColor: statusColors.bg }]}>
-                        <ThemedText style={[styles.statusChipText, { color: statusColors.text }]}>
-                          {u.status}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    <ThemedText style={styles.itemSub}>{u.role} - @{u.username}</ThemedText>
+                <TouchableOpacity key={u.id} style={styles.listItemModern} onPress={() => router.push(`/human/${u.id}`)} activeOpacity={0.7}>
+                  <View style={[styles.userAvatar, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                    <ThemedText style={[styles.userAvatarText, { color: primaryColor }]}>
+                      {u.fullName.substring(0, 2).toUpperCase()}
+                    </ThemedText>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText style={styles.itemTitleModern}>{u.fullName}</ThemedText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
+                      <ThemedText style={styles.itemSubModern}>{u.role}</ThemedText>
+                      <ThemedText style={{color: '#CBD5E1'}}>•</ThemedText>
+                      <ThemedText style={styles.itemSubModern}>@{u.username}</ThemedText>
+                    </View>
+                  </View>
+                  <View style={[styles.statusChipModern, { backgroundColor: statusColors.bg }]}>
+                     <ThemedText style={[styles.statusChipTextModern, { color: statusColors.text }]}>
+                       {u.status}
+                     </ThemedText>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -253,12 +310,12 @@ export default function DepotDetailScreen() {
       case 'PRODUCTS':
         const getProductStatusStyle = (status: string) => {
           switch (status) {
-            case 'AVAILABLE': return { bg: '#E8F5E9', text: '#2E7D32', label: 'Tersedia' };
-            case 'PENDING': return { bg: '#FFF3E0', text: '#EF6C00', label: 'Pending' };
-            case 'UNAVAILABLE': return { bg: '#F5F5F5', text: '#616161', label: 'Kosong' };
-            case 'REJECTED': return { bg: '#FFEBEE', text: '#C62828', label: 'Ditolak' };
-            case 'DELETED': return { bg: '#37474F', text: '#FFFFFF', label: 'Dihapus' };
-            default: return { bg: '#ECEFF1', text: '#455A64', label: status };
+            case 'AVAILABLE': return { bg: '#DCFCE7', text: '#166534', label: 'Tersedia' };
+            case 'PENDING': return { bg: '#FEF9C3', text: '#9A3412', label: 'Pending' };
+            case 'UNAVAILABLE': return { bg: '#F1F5F9', text: '#475569', label: 'Kosong' };
+            case 'REJECTED': return { bg: '#FEE2E2', text: '#991B1B', label: 'Ditolak' };
+            case 'DELETED': return { bg: '#1E293B', text: '#F8FAFC', label: 'Dihapus' };
+            default: return { bg: '#F8FAFC', text: '#64748B', label: status };
           }
         };
 
@@ -268,82 +325,77 @@ export default function DepotDetailScreen() {
 
         return (
           <View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScroll}>
-              {['ALL', 'AVAILABLE', 'UNAVAILABLE', 'PENDING', 'REJECTED', 'DELETED'].map((status) => (
-                <TouchableOpacity 
-                  key={status}
-                  style={[
-                    styles.statusFilterOption, 
-                    productStatusFilter === status && { backgroundColor: colors.primary, borderColor: colors.primary }
-                  ]}
-                  onPress={() => setProductStatusFilter(status as any)}
-                >
-                  <View style={[styles.dot, { backgroundColor: getProductStatusStyle(status).text }]} />
-                  <ThemedText style={[styles.statusFilterText, productStatusFilter === status && styles.statusFilterTextActive]}>
-                    {status === 'ALL' ? 'Semua Produk' : getProductStatusStyle(status).label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusFilterScrollModern} contentContainerStyle={{paddingRight: 20}}>
+              {['ALL', 'AVAILABLE', 'UNAVAILABLE', 'PENDING', 'REJECTED', 'DELETED'].map((status) => {
+                 const isActive = productStatusFilter === status;
+                 return (
+                  <TouchableOpacity 
+                    key={status}
+                    style={[
+                      styles.statusFilterOptionModern, 
+                      isActive && { backgroundColor: primaryColor, borderColor: primaryColor }
+                    ]}
+                    onPress={() => setProductStatusFilter(status as any)}
+                  >
+                    <View style={[styles.dotModern, { backgroundColor: isActive ? '#FFF' : getProductStatusStyle(status).text }]} />
+                    <ThemedText style={[styles.statusFilterTextModern, isActive && styles.statusFilterTextActiveModern]}>
+                      {status === 'ALL' ? 'Semua Produk' : getProductStatusStyle(status).label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                 )
+              })}
             </ScrollView>
 
             {filteredProducts.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="fast-food-outline" size={48} color="#ccc" />
-                <ThemedText style={styles.emptyText}>
+              <View style={styles.emptyContainerModern}>
+                <Ionicons name="fast-food-outline" size={64} color="#CBD5E1" />
+                <ThemedText style={styles.emptyTextModern}>
                   {depot.products.length === 0 
-                    ? "Belum ada menu produk di depot ini." 
-                    : "Tidak ada produk yang cocok dengan filter."}
+                    ? "Belum ada produk terdaftar." 
+                    : "Tidak ada produk dengan filter ini."}
                 </ThemedText>
               </View>
             ) : (
-              <View style={styles.productGrid}>
+              <View style={styles.productGridModern}>
                 {filteredProducts.map((p) => {
                   const pStatus = getProductStatusStyle(p.status);
-                  
-                  // --- MENCARI GAMBAR UTAMA ---
                   const mainImage = p.images && p.images.length > 0 
-                    ? p.images.find(img => img.isMain) || p.images[0] // Cari isMain, jika tidak ada ambil index 0
+                    ? p.images.find(img => img.isMain) || p.images[0] 
                     : null;
 
                   return (
                     <TouchableOpacity 
                       key={p.id} 
-                      style={styles.productCard} 
+                      style={styles.productCardModern} 
                       onPress={() => router.push(`/product/${p.id}`)}
                       activeOpacity={0.7}
                     >
-                      <View style={[styles.productIconContainer, mainImage && { backgroundColor: 'transparent' }]}>
+                      <View style={[styles.productImageContainerModern, !mainImage && { backgroundColor: hexToRgba(primaryColor, 0.05) }]}>
                         {mainImage ? (
-                          <Image 
-                            source={{ uri: mainImage.url }} 
-                            style={styles.productImage} 
-                            resizeMode="cover"
-                          />
+                          <Image source={{ uri: mainImage.url }} style={styles.productImageModern} resizeMode="cover" />
                         ) : (
-                          <Ionicons name={p.isSubscription ? "calendar" : "fast-food"} size={24} color={colors.primary} />
+                          <Ionicons name={p.isSubscription ? "calendar" : "cube"} size={28} color={primaryColor} />
                         )}
+                        <View style={[styles.productStatusBadge, { backgroundColor: pStatus.bg }]}>
+                          <ThemedText style={[styles.productStatusText, { color: pStatus.text }]}>{pStatus.label}</ThemedText>
+                        </View>
                       </View>
                       
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 5 }}>
-                          <ThemedText style={[styles.productName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{p.name}</ThemedText>
-                          <View style={[styles.statusChip, { backgroundColor: pStatus.bg }]}>
-                            <ThemedText style={[styles.statusChipText, { color: pStatus.text }]}>
-                              {pStatus.label}
-                            </ThemedText>
-                          </View>
-                        </View>
-                        <ThemedText style={styles.productPrice}>Rp {p.price.toLocaleString('id-ID')}</ThemedText>
-                        <View style={styles.productMeta}>
-                          <ThemedText style={styles.productMetaText}>{p.weightEst}kg | {p.volumeEst}L</ThemedText>
+                      <View style={styles.productInfoModern}>
+                        <ThemedText style={styles.productNameModern} numberOfLines={2}>{p.name}</ThemedText>
+                        <ThemedText style={[styles.productPriceModern, { color: primaryColor }]}>
+                          Rp {p.price.toLocaleString('id-ID')}
+                        </ThemedText>
+                        
+                        <View style={styles.productMetaModern}>
+                          <ThemedText style={styles.productMetaTextModern}>{p.weightEst}kg • {p.volumeEst}L</ThemedText>
                           {p.isSubscription && (
-                            <View style={[styles.subBadge, { backgroundColor: colors.secondary }]}>
-                              <ThemedText style={[styles.subBadgeText, { color: '#000' }]}>Langganan</ThemedText>
+                            <View style={[styles.subBadgeModern, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+                              <ThemedText style={[styles.subBadgeTextModern, { color: primaryColor }]}>Langganan</ThemedText>
                             </View>
                           )}
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={18} color="#CCC" />
                     </TouchableOpacity>
                   );
                 })}
@@ -353,41 +405,48 @@ export default function DepotDetailScreen() {
         );
 
       case 'ORDERS':
-        return depot.orders.map((o) => (
-          <TouchableOpacity key={o.id} style={styles.listItem} onPress={() => Alert.alert('Detail', `Detail Order: ${o.id}`)}>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.itemTitle}>Order ID: {o.id.substring(0,8)}...</ThemedText>
-              <ThemedText style={styles.itemSub}>Status: {o.status}</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        ));
-
       case 'PACKAGES':
-        return depot.packages.map((p) => (
-          <TouchableOpacity key={p.id} style={styles.listItem} onPress={() => Alert.alert('Detail', `Detail Paket: ${p.recipientName}`)}>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.itemTitle}>{p.recipientName}</ThemedText>
-              <ThemedText style={styles.itemSub}>Berat: {p.weight}kg | Vol: {p.volume}L</ThemedText>
+      case 'ROUTES':
+        const emptyMsg = {
+          'ORDERS': 'Belum ada order tercatat.',
+          'PACKAGES': 'Tidak ada paket menunggu.',
+          'ROUTES': 'Belum ada rute pengiriman.'
+        };
+        const iconName = {
+          'ORDERS': 'receipt-outline',
+          'PACKAGES': 'cube-outline',
+          'ROUTES': 'map-outline'
+        };
+
+        const dataArray = activeTab === 'ORDERS' ? depot.orders 
+                      : activeTab === 'PACKAGES' ? depot.packages 
+                      : depot.routes;
+
+        if (dataArray.length === 0) {
+          return (
+             <View style={styles.emptyContainerModern}>
+                <Ionicons name={iconName[activeTab] as any} size={64} color="#CBD5E1" />
+                <ThemedText style={styles.emptyTextModern}>{emptyMsg[activeTab]}</ThemedText>
+              </View>
+          );
+        }
+
+        return dataArray.map((item: any) => (
+          <TouchableOpacity key={item.id} style={styles.listItemModern} onPress={() => Alert.alert('Detail', `Fitur dalam pengembangan.`)}>
+            <View style={[styles.iconBoxSmall, { backgroundColor: hexToRgba(primaryColor, 0.05), marginRight: 16 }]}>
+               <Ionicons name={iconName[activeTab] as any} size={20} color={primaryColor} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.itemTitleModern}>
+                {activeTab === 'PACKAGES' ? item.recipientName : `ID: ${item.id.substring(0,8)}...`}
+              </ThemedText>
+              <ThemedText style={styles.itemSubModern}>
+                {activeTab === 'PACKAGES' ? `${item.weight}kg • ${item.volume}L` : `Status: ${item.status}`}
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
           </TouchableOpacity>
         ));
-        
-      case 'ROUTES':
-        return depot.routes.length === 0 ? (
-          <ThemedText style={styles.emptyText}>Belum ada rute pengiriman.</ThemedText>
-        ) : (
-          depot.routes.map((r) => (
-            <TouchableOpacity key={r.id} style={styles.listItem} onPress={() => Alert.alert('Detail', `Detail Rute: ${r.id}`)}>
-              <View style={{ flex: 1 }}>
-                <ThemedText style={styles.itemTitle}>Rute: {r.id.substring(0,8)}...</ThemedText>
-                <ThemedText style={styles.itemSub}>Status: {r.status}</ThemedText>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          ))
-        );
     }
   };
 
@@ -397,48 +456,55 @@ export default function DepotDetailScreen() {
       options={{ 
         title: 'Detail Depot', 
         headerShown: true,
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: '#FFFFFF' },
         headerRight: () => {
-          if (activeTab === 'USERS') {
+          if (activeTab === 'USERS' && userRole === 'OWNER') {
             return (
-              <TouchableOpacity onPress={handleAddStaff} style={{ marginRight: 15 }}>
-                <Ionicons name="person-add" size={24} color={colors.primary} />
+              <TouchableOpacity onPress={handleAddStaff} style={styles.headerIconButton}>
+                <Ionicons name="person-add" size={22} color={primaryColor} />
               </TouchableOpacity>
             );
-          }else if (activeTab === 'PRODUCTS') {
+          } else if (activeTab === 'PRODUCTS' && userRole === 'OWNER') {
             return (
-              <TouchableOpacity onPress={handleAddProduct} style={{ marginRight: 15 }}>
-                <Ionicons name="add-circle" size={24} color={colors.primary} />
+              <TouchableOpacity onPress={handleAddProduct} style={styles.headerIconButton}>
+                <Ionicons name="add" size={26} color={primaryColor} />
               </TouchableOpacity>
             );
-          }else if (activeTab === 'INFO'&& userRole === 'OWNER') {
+          } else if (activeTab === 'INFO' && userRole === 'OWNER') {
             return (
-              <TouchableOpacity onPress={handleEditDepot} style={{ marginRight: 15 }}>
-                <Ionicons name="create" size={24} color={colors.primary} />
+              <TouchableOpacity onPress={handleEditDepot} style={styles.headerIconButton}>
+                <Ionicons name="create-outline" size={24} color={primaryColor} />
               </TouchableOpacity>
             );
           }
+          return null;
         }
       }} 
     />
 
       {isLoading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <ThemedText style={{ marginTop: 10 }}>Memuat detail...</ThemedText>
+          <ActivityIndicator size="large" color={primaryColor} />
+          <ThemedText style={styles.loadingText}>Menyiapkan data depot...</ThemedText>
         </View>
       ) : depot ? (
         <View style={{ flex: 1 }}>
-          <View style={styles.headerCard}>
-            <View style={styles.headerRow}>
-              <Ionicons name="business" size={36} color={colors.primary} />
-              <View style={styles.titleContainer}>
-                <ThemedText style={styles.depotName}>{depot.name}</ThemedText>
-              </View>
-            </View>
+          
+          {/* Header Info Depot */}
+          <View style={styles.headerModern}>
+             <View style={[styles.headerIconWrapper, { backgroundColor: hexToRgba(primaryColor, 0.1) }]}>
+               <Ionicons name="business" size={32} color={primaryColor} />
+             </View>
+             <View style={styles.headerTextWrapper}>
+               <ThemedText style={styles.depotNameModern}>{depot.name}</ThemedText>
+               <ThemedText style={styles.depotIdModern}>ID: {depot.id.substring(0,12)}...</ThemedText>
+             </View>
           </View>
 
-          <View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer}>
+          {/* Navigation Tabs */}
+          <View style={styles.tabWrapperModern}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
               <TabButton title="Informasi" tabName="INFO" />
               <TabButton title={`Staf (${depot.users.length})`} tabName="USERS" />
               <TabButton title={`Produk (${depot.products.length})`} tabName="PRODUCTS" />
@@ -448,13 +514,14 @@ export default function DepotDetailScreen() {
             </ScrollView>
           </View>
 
-          <ScrollView style={styles.contentScroll} contentContainerStyle={{ paddingBottom: 40 }}>
+          <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentScrollInner} showsVerticalScrollIndicator={false}>
             {renderContent()}
           </ScrollView>
         </View>
       ) : (
         <View style={styles.centerContent}>
-          <ThemedText>Data depot tidak ditemukan.</ThemedText>
+          <Ionicons name="alert-circle-outline" size={48} color="#CBD5E1" />
+          <ThemedText style={styles.emptyTextModern}>Data depot tidak ditemukan.</ThemedText>
         </View>
       )}
     </ThemedView>
@@ -462,139 +529,79 @@ export default function DepotDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F7FA' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' }, // slate-50
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  headerCard: { backgroundColor: '#FFFFFF', padding: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  titleContainer: { marginLeft: 15, flex: 1 },
-  depotName: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  depotId: { fontSize: 12, color: '#888', marginTop: 2 },
+  loadingText: { marginTop: 12, color: '#64748B', fontWeight: '500' },
+  headerIconButton: { padding: 8, marginRight: 8, backgroundColor: '#F1F5F9', borderRadius: 20 },
+
+  // Header Depot
+  headerModern: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 20 },
+  headerIconWrapper: { width: 64, height: 64, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  headerTextWrapper: { flex: 1, justifyContent: 'center' },
+  depotNameModern: { fontSize: 22, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5, marginBottom: 4 },
+  depotIdModern: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+
+  // Tabs
+  tabWrapperModern: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  tabScrollContent: { paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 },
+  tabButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, backgroundColor: '#F1F5F9' },
+  tabText: { fontSize: 13, color: '#64748B', fontWeight: '600' },
+  tabTextActive: { color: '#FFFFFF', fontWeight: '700' },
+
+  // Layout Content
+  contentScroll: { flex: 1 },
+  contentScrollInner: { padding: 16, paddingBottom: 40 },
+
+  // Card Informasi Modern
+  cardModern: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2 },
+  infoRow: { flexDirection: 'row', alignItems: 'center' },
+  iconBoxSmall: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  labelModern: { fontSize: 12, color: '#64748B', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  valueModern: { fontSize: 15, color: '#0F172A', fontWeight: '600', lineHeight: 22 },
+  rowModern: { flexDirection: 'row', justifyContent: 'space-between' },
+  halfWidthModern: { flex: 1 },
+  dividerModern: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 20 },
+  statsGrid: { flexDirection: 'row', gap: 12 },
+  statBox: { flex: 1, backgroundColor: '#F8FAFC', padding: 16, borderRadius: 16, alignItems: 'center' },
+  statNumber: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  statLabel: { fontSize: 11, color: '#64748B', fontWeight: '600', textAlign: 'center' },
+
+  // List Item (Users, Orders, dll)
+  listItemModern: { flexDirection: 'row', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, marginBottom: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1 },
+  userAvatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  userAvatarText: { fontSize: 16, fontWeight: '800' },
+  itemTitleModern: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
+  itemSubModern: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  statusChipModern: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginLeft: 8 },
+  statusChipTextModern: { fontSize: 11, fontWeight: '700' },
+
+  // Empty State
+  emptyContainerModern: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
+  emptyTextModern: { marginTop: 16, fontSize: 15, color: '#94A3B8', fontWeight: '500', textAlign: 'center' },
+
+  // Filters
+  filterContainerModern: { flexDirection: 'row', marginBottom: 16, gap: 8, paddingHorizontal: 4 },
+  filterButtonModern: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, borderWidth: 1, backgroundColor: '#FFFFFF' },
+  filterTextModern: { fontSize: 12, fontWeight: '600' },
   
-  tabContainer: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E0E0E0' },
-  tabButton: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 10, backgroundColor: '#F0F0F0' },
-  tabText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  tabTextActive: { color: '#FFF' },
+  statusFilterScrollModern: { marginBottom: 20, paddingHorizontal: 4 },
+  statusFilterOptionModern: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF', marginRight: 8, borderWidth: 1, borderColor: '#E2E8F0' },
+  statusFilterTextModern: { fontSize: 12, color: '#64748B', fontWeight: '600' },
+  statusFilterTextActiveModern: { color: '#FFFFFF' },
+  dotModern: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
 
-  contentScroll: { flex: 1, padding: 15 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
-  label: { fontSize: 14, color: '#666', marginBottom: 5 },
-  value: { fontSize: 16, color: '#222', fontWeight: '500', marginBottom: 15 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  halfWidth: { flex: 1 },
-  divider: { height: 1, backgroundColor: '#EEE', marginVertical: 10 },
-  statsText: { fontSize: 15, color: '#444', marginBottom: 5, fontWeight: '500' },
-
-  listItem: { flexDirection: 'row', backgroundColor: '#FFFFFF', padding: 15, borderRadius: 10, marginBottom: 10, alignItems: 'center', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
-  itemTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  itemSub: { fontSize: 13, color: '#666' },
-  emptyText: { textAlign: 'center', marginTop: 20, color: '#888' },
-
-  filterContainer: { flexDirection: 'row', marginBottom: 15, gap: 10 },
-  filterButton: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1, backgroundColor: '#FFF' },
-  filterTextActive: { color: '#FFF' },
-  statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusChipText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  statusFilterScroll: {
-    marginBottom: 20,
-    flexDirection: 'row',
-  },
-  statusFilterOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#FFF',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  statusFilterText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  statusFilterTextActive: {
-    color: '#FFF',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-  },
-
-  // product
-  productGrid: {
-    gap: 12,
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 12,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  productIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
-    backgroundColor: '#F0F7FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    overflow: 'hidden',
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  productPrice: {
-    fontSize: 14,
-    color: '#2E7D32',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  productMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
-    gap: 8,
-  },
-  productMetaText: {
-    fontSize: 12,
-    color: '#888',
-  },
-  subBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  subBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
+  // Products Grid
+  productGridModern: { gap: 16 },
+  productCardModern: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2 },
+  productImageContainerModern: { width: 100, height: 100, justifyContent: 'center', alignItems: 'center' },
+  productImageModern: { width: '100%', height: '100%' },
+  productStatusBadge: { position: 'absolute', top: 8, left: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  productStatusText: { fontSize: 9, fontWeight: '800' },
+  productInfoModern: { flex: 1, padding: 12, justifyContent: 'center' },
+  productNameModern: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginBottom: 4, lineHeight: 20 },
+  productPriceModern: { fontSize: 14, fontWeight: '800', marginBottom: 8 },
+  productMetaModern: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  productMetaTextModern: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  subBadgeModern: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  subBadgeTextModern: { fontSize: 10, fontWeight: '800' },
 });

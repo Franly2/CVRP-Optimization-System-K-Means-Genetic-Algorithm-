@@ -58,7 +58,6 @@ export class DepotController {
     async testGetAllProductsRLS(
       @GetUser('companyId') companyId: string,
     ) {
-      // Pastikan fungsi ini sudah kamu buat di DepotService
       return await this.depotService.testGetAllProductsRLS(companyId);
     }
 }

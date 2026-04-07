@@ -3,12 +3,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable prettier/prettier */
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
-import { AuthService, LoginResponse } from './auth.service';
-import { RegisterUserDto } from './dto/register.dto';
+import { AuthService, LoginResponse, RegisterResponse } from './auth.service';
+import { RegisterCustomerDto } from './dto/registerCustomer.dto';
 import { LoginUserDto } from './dto/login.dto';
 import { GetUser } from './get-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PrismaService } from 'prisma/prisma.service';
+import { RegisterUserDto } from './dto/register.dto';
 
 
 @Controller('auth')
@@ -17,7 +18,6 @@ export class AuthController {
 
   @Get('branding/:slug') 
   async getPublicBranding(@Param('slug') slug: string) {
-    console.log(`Menerima permintaan untuk mendapatkan branding dengan slug: ${slug}`);
     return await this.authService.getBrandingBySlug(slug);
   }
 
@@ -38,7 +38,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@GetUser() userPayload: any): Promise<any> { 
-    console.log(`Menerima permintaan profil untuk user ID: ${userPayload.userId} dari company ID: ${userPayload.companyId}`);
     const result = await this.prisma.withTenant(userPayload.companyId, async (tx) => {
       const fullUser = await tx.user.findUnique({
         where: { id: userPayload.userId },
@@ -49,5 +48,15 @@ export class AuthController {
       return fullUser;
     });
     return result;
+  }
+
+  //customer
+  @HttpCode(HttpStatus.OK) 
+  @Post(':companySlug/register') 
+  async addCustomer(
+    @Param('companySlug') companySlug: string,
+    @Body() data: RegisterCustomerDto
+  ): Promise<RegisterResponse> {
+    return this.authService.registerCustomer(companySlug, data);
   }
 }     

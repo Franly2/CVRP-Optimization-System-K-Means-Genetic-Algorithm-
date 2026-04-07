@@ -27,11 +27,10 @@ export class PrismaService
   fn: (tx: PrismaClient) => Promise<T>,
 ): Promise<T> {
   return this.$transaction(async (tx: any) => { 
-    // VVV INI YANG DIUBAH VVV
     await tx.$executeRawUnsafe(
       `SET LOCAL app.current_tenant_id = '${companyId}'`
       //  untuk tes rls
-      // `SET LOCAL app.current_tenant_id = 'dwdadwadawdwad'`
+      // `SET LOCAL app.current_tenant_id = 'tes'`
     );
     return fn(tx);
   });

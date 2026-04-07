@@ -16,7 +16,6 @@ export async function seedCompany(tx: Prisma.TransactionClient) {
   // 1. BUAT COMPANY A (IBU BUDI)
   // ==========================================
   const idA = randomUUID();
-  // Buka gerbang RLS untuk Company A
   await tx.$executeRawUnsafe(`SET LOCAL app.current_tenant = '${idA}';`);
 
   const companyA = await tx.company.create({
