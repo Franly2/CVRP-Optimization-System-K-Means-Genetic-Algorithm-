@@ -49,6 +49,13 @@ interface ProductDetail {
   schedules?: ScheduleItem[];   
 }
 
+const getOptimizedUrl = (url: string) => {
+  if (url.includes('unsplash.com') && !url.includes('?')) {
+    return `${url}?w=1080&q=80`;
+  }
+  return url;
+};
+
 const hexToRgba = (hex: string, alpha: number) => {
   if (!hex) return `rgba(0,0,0,${alpha})`;
   let cleanHex = hex.replace('#', '');
@@ -183,11 +190,11 @@ export default function ProductDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         
         {/* --- Image Section --- */}
-        <View style={styles.imageSection}>
+        {/* <View style={styles.imageSection}>
           <View style={styles.mainImageContainer}>
             {mainImage ? (
               <TouchableOpacity onPress={() => handleOpenImage(mainImage.url)} activeOpacity={0.9}>
-                <Image source={{ uri: mainImage.url }} style={styles.mainImage} resizeMode="cover" />
+                <Image source={{ uri: getOptimizedUrl(mainImage.url) }} style={styles.mainImage} resizeMode="cover" />
               </TouchableOpacity>
             ) : (
               <View style={[styles.mainImagePlaceholder, { backgroundColor: hexToRgba(primaryColor, 0.05) }]}>
@@ -206,7 +213,39 @@ export default function ProductDetailScreen() {
               ))}
             </ScrollView>
           )}
-        </View>
+        </View> */}
+        {/* --- Image Section --- */}
+        <View style={styles.imageSection}>
+          <View style={styles.mainImageContainer}>
+            {mainImage ? (
+              <TouchableOpacity 
+                style={{ width: 280, aspectRatio: 1 }} // <--- UBAH DI SINI JADI 280
+                onPress={() => handleOpenImage(mainImage.url)} 
+                activeOpacity={0.9}
+              >
+                <Image 
+                  source={{ uri: getOptimizedUrl(mainImage.url) }} 
+                  style={styles.mainImage} 
+                  resizeMode="contain" 
+                />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.mainImagePlaceholder, { backgroundColor: hexToRgba(primaryColor, 0.05) }]}>
+                <Ionicons name="image-outline" size={64} color="#CBD5E1" />
+                <ThemedText style={{ color: '#94A3B8', marginTop: 10, fontWeight: '500' }}>Belum ada foto</ThemedText>
+              </View>
+            )}
+          </View>
+          {otherImages.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailContainer} contentContainerStyle={{ paddingHorizontal: 24 }}>
+              {otherImages.map(img => (
+                <TouchableOpacity key={img.id} onPress={() => handleOpenImage(img.url)} activeOpacity={0.7}>
+                  <Image source={{ uri: img.url }} style={styles.thumbnailImage} resizeMode="contain" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+            </View>
 
         <View style={styles.contentPadding}>
           {/* --- Header Section --- */}
@@ -465,10 +504,11 @@ const styles = StyleSheet.create({
   contentPadding: { padding: 24, paddingTop: 10 },
   
   imageSection: { marginBottom: 10 },
+
   mainImageContainer: { alignItems: 'center', paddingHorizontal: 24, marginTop: 10 }, 
-  mainImage: { width: '100%', height: 320, borderRadius: 24, backgroundColor: '#F1F5F9' }, 
-  mainImagePlaceholder: { width: '100%', height: 320, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  
+  mainImage: { width: '100%', height: '100%', borderRadius: 24 }, 
+  mainImagePlaceholder: { width: 280, aspectRatio: 1, borderRadius: 24, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F1F5F9' },
+
   thumbnailContainer: { marginTop: 16 },
   thumbnailImage: { width: 72, height: 72, borderRadius: 16, marginRight: 12 },
 

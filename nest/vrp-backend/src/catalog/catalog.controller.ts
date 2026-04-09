@@ -73,4 +73,9 @@ export class CatalogController {
   ) {
     return await this.catalogService.updateProduct(companyId, productId, dto);
   }
+
+
+  //getAllProducts (untuk customer, hanya produk dengan status ACTIVE yang ditampilkan)
+
+  //getDepotProducts (ambil semua produk yang tersedia di depot tertentu, hanya produk dengan status ACTIVE yang ditampilkan)
 }

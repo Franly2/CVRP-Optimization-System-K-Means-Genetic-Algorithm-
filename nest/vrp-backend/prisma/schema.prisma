@@ -149,6 +149,7 @@ model User {
   driverLocation DriverLocation?
   vehicle        Vehicle? // 1 Driver punya 1 Kendaraan
   routes         Route[]  // 1 Driver bisa punya histori banyak rute
+  addresses      Address[] 
 
   companyId     String
   company       Company        @relation(fields: [companyId], references: [id])
@@ -159,6 +160,18 @@ model User {
   updatedAt     DateTime       @updatedAt
 
   @@unique([username, companyId]) // username "budi" hanya boleh ada 1 di dalam company yang sama
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  label       String   // "Rumah", "Kantor", dll
+  addressLine String   @db.Text
+  latitude    Float
+  longitude   Float
+  isMain      Boolean  @default(false)
+  orders      Order[]  
 }
 
 enum ProductStatus {
@@ -234,16 +247,12 @@ model Order {
   totalPrice      Int
   status          OrderStatus @default(UNPAID)
 
-  // Titik tujuan yang diinput saat checkout
-  deliveryAddress String @db.Text
-  destLat         Float
-  destLng         Float
-
   trackingId      String? // kasus catering : Menyimpan ID Package dari mesin Logistik (cth: "PKG-001")
   
   deliveryShiftId String
   deliveryShift   DeliveryShift @relation(fields: [deliveryShiftId], references: [id])
-
+  addressId       String 
+  address         Address? @relation(fields: [addressId], references: [id])
   items           OrderItem[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

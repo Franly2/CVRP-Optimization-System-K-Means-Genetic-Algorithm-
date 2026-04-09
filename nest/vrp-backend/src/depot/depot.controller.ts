@@ -60,4 +60,15 @@ export class DepotController {
     ) {
       return await this.depotService.testGetAllProductsRLS(companyId);
     }
+
+
+    // customerGetAllDepot (ambil semua depot terdekat dari customer)
+    // @Get('customer')
+    // async customerGetAllDepot(
+    //   @GetUser('companyId') companyId: string,
+    // ) {
+    //   return await this.depotService.customerGetAllDepot(companyId);
+    // }
+
+
 }

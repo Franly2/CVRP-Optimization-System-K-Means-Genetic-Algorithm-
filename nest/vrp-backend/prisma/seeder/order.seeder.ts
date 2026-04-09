@@ -1,14 +1,12 @@
 /* eslint-disable prettier/prettier */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Prisma, OrderStatus } from '@prisma/client';
 
 export async function seedOrder(
-  tx: Prisma.TransactionClient, // 👈 Gunakan TransactionClient
+  tx: Prisma.TransactionClient, 
   companyId: string,
-  customerId: string,
+  customers: any[], 
   products: any[],
   depotId: string,
   deliveryShiftId: string
@@ -18,22 +16,19 @@ export async function seedOrder(
   console.log('⏳ Sedang men-generate 50 Order (Mohon tunggu)...');
 
   for (let i = 1; i <= 50; i++) {
-    // Generate Random Kordinat Area Surabaya (Penting untuk Clustering)
-    const randomLat = -7.2 + (Math.random() * -0.15);
-    const randomLng = 112.65 + (Math.random() * 0.15);
+    const randomCustomer = customers[Math.floor(Math.random() * customers.length)];
+    const customerMainAddressId = randomCustomer.addresses[0].id;
 
     const order = await tx.order.create({
       data: {
         companyId: companyId,
         depotId: depotId,
-        customerId: customerId,
+        customerId: randomCustomer.id, 
         totalPrice: products[0].price * 2,
         status: OrderStatus.PAID,
         deliveryShiftId: deliveryShiftId, 
 
-        deliveryAddress: `Rumah Pelanggan No. ${i}, Jalan Dummy Surabaya`,
-        destLat: randomLat,
-        destLng: randomLng, 
+        addressId: customerMainAddressId, 
         
         items: {
           create: [
@@ -51,13 +46,14 @@ export async function seedOrder(
           include: {
             product: true 
           }
-        }
+        },
+        address: true 
       }
     });
 
     createdOrders.push(order);
   }
   
-  console.log(`🛒 50 Order Katering berhasil dibuat dengan kordinat tersebar!`);
+  console.log(`🛒 50 Order Katering berhasil disebar ke 10 pelanggan!`);
   return createdOrders; 
 }

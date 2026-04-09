@@ -185,8 +185,6 @@ export class DepotService {
     }
   }
 
-  // Di dalam class DepotService
-
   async updateDepot(companyId: string, id: string, dto: AddDepotDto) {
   try {
     return await this.prisma.withTenant(companyId, async (tx) => {
@@ -228,4 +226,24 @@ export class DepotService {
     throw new InternalServerErrorException('Terjadi kesalahan saat memperbarui data depot.');
   }
 }
+
+  // async customerGetAllDepot(companyId: string) {
+  //   try {
+  //     return await this.prisma.withTenant(companyId, async (tx) => {
+  //       const products = await tx.product.findMany({
+  //         // Include ditambahkan agar kita bisa melihat datanya utuh (opsional)
+  //         include: {
+  //           images: true,
+  //         },
+  //         orderBy: {
+  //           createdAt: 'desc' 
+  //         }
+  //       });
+        
+  //     });
+  //   } catch (error) {
+  //     console.error('ERROR CUSTOMER GET ALL DEPOT:', error);
+  //     throw new InternalServerErrorException('Terjadi kesalahan saat mengambil daftar depot.');
+  //   }
+  // }
 }

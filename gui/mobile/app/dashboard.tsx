@@ -3,7 +3,7 @@ import { DriverDashboard } from '@/components/dashboard/driverDashboard';
 import { OwnerDashboard } from '@/components/dashboard/ownerDashboard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Ionicons } from '@expo/vector-icons'; // 👈 FIX: Ubah import ke Ionicons
+import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -69,7 +69,6 @@ export default function DashboardScreen() {
           <ThemedText style={styles.headerTitle}>ORBIS Dashboard</ThemedText>
         </View>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButtonModern}>
-          {/* 👇 FIX: Gunakan Ionicons di sini */}
           <Ionicons name="log-out-outline" size={22} color="#FF3B30" />
         </TouchableOpacity>
       </View>
