@@ -77,7 +77,7 @@ export class AuthService {
   });
 
   async getBrandingBySlug(slug: string) {
-  const company = await this.prisma.company.findUnique({
+  const company = await this.prismaAuth.company.findUnique({
     where: { slug },
     select: {
       name: true,
@@ -127,7 +127,7 @@ export class AuthService {
         data: {
           username,
           password: hashedPassword,
-          role: role as Role,
+          role: role,
           fullName,
           phoneNumber,
           birthDate: new Date(birthDate),

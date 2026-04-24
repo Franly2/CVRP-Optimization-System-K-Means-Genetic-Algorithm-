@@ -57,6 +57,7 @@ export default function RootLayout() {
       <Head>
         <title>ORBIS</title>
         <meta name="description" content="Optimized Routing & Business Information System" />
+        <meta name="dicoding:email" content="franlybudipramana588@gmail.com" />
       </Head>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" /> 
